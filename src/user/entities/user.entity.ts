@@ -1,10 +1,11 @@
+import { Post } from 'src/post/entities/post.entity';
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 import { CreateDateColumn, OneToMany } from 'typeorm';
 
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: string;
 
   @Column()
   first_name: string;
@@ -32,4 +33,8 @@ export class User {
 
   @CreateDateColumn()
   updated_at: Date;
+  
+  @OneToMany(() => Post, (post) => post.user)
+  posts: Post[]
+
 }
