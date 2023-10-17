@@ -53,7 +53,7 @@ export class UserService {
       prePage,
     };
   }
-  async getUserById(id: string): Promise<User> {
+  async getUserById(id: number): Promise<User> {
     return await this.userRepository.findOneBy({ id });
   }
 
@@ -76,17 +76,17 @@ export class UserService {
   }
 
   async update(
-    id: string,
+    id: number,
     updateUserDto: UpdateUserDto,
   ): Promise<UpdateResult> {
     return await this.userRepository.update(id, updateUserDto);
   }
 
-  async remove(id: string): Promise<DeleteResult> {
+  async remove(id: number): Promise<DeleteResult> {
     return await this.userRepository.delete(id);
   }
 
-  async updateAvatar(id: string, avatar: string): Promise<UpdateResult> {
+  async updateAvatar(id: number, avatar: string): Promise<UpdateResult> {
     return await this.userRepository.update(id, { avatar });
   }
 

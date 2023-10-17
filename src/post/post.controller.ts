@@ -23,7 +23,9 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { UpdateResult } from 'typeorm';
 import { FilterPostDto } from './dto/filter-post.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Post')
 @Controller('api/v1/posts')
 export class PostController {
   constructor(private readonly postService: PostService) {}
@@ -34,7 +36,7 @@ export class PostController {
   }
 
   @Get(':id')
-  getPostById(@Param('id') id: string): Promise<PostEntity> {
+  getPostById(@Param('id') id: number): Promise<PostEntity> {
     return this.postService.findOne(id);
   }
 
@@ -100,7 +102,7 @@ export class PostController {
     }),
   )
   update(
-    @Param('id') id: string,
+    @Param('id') id: number,
     @Req() req: any,
     @UploadedFile() file: Express.Multer.File,
     @Body() updatePostDto: UpdatePostDto,
@@ -115,7 +117,7 @@ export class PostController {
 
   @UseGuards(AuthGuard)
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<void> {
-    return this.postService.remove(id);
+  remove( @Req() req: any,@Param('id') id: number): Promise<void> {
+    return this.postService.remove(id, req.user_data.id);
   }
 }

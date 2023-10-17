@@ -1,11 +1,12 @@
 import { Post } from 'src/post/entities/post.entity';
+import { Comment } from 'src/comment/entities/comment.entity';
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 import { CreateDateColumn, OneToMany } from 'typeorm';
 
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
-  id: string;
+  id: number;
 
   @Column()
   first_name: string;
@@ -36,5 +37,8 @@ export class User {
   
   @OneToMany(() => Post, (post) => post.user)
   posts: Post[]
+
+  @OneToMany(() => Comment, (comment) => comment)
+  comments: Comment[];
 
 }
