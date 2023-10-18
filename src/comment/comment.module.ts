@@ -8,7 +8,6 @@ import { Comment } from './entities/comment.entity';
 import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [TypeOrmModule.forFeature([Post, User, Comment]),ConfigModule],
-
   providers: [CommentService],
   controllers: [CommentController],
 })

@@ -1,7 +1,8 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { Comment } from './entities/comment.entity';
+import { FilterCommentDto } from './dto/filter-comment.dto';
 
 @Injectable()
 export class CommentService {
@@ -10,8 +11,20 @@ export class CommentService {
     private readonly commentRepository: Repository<Comment>,
   ) {}
 
-  async findAll(): Promise<Comment[]> {
-    return this.commentRepository.find({
+  async findAll(filterquery:FilterCommentDto){
+    const page = filterquery.page || 1;
+    const items_per_page = filterquery.items_per_page || 10;
+    const search = filterquery.search || '';
+    const skip = items_per_page * (page - 1);
+    const [res, total] = await this.commentRepository.findAndCount({
+      where: {
+        comment: Like(`%${search}%`),
+        user: {
+          first_name: Like(`%${search}%`),
+          last_name: Like(`%${search}%`),
+        },
+      },
+      skip: skip,
       order: { updated_at: 'DESC' },
       relations: ['user', 'post'],
       select: {
@@ -26,6 +39,19 @@ export class CommentService {
         // },
       },
     });
+    const totalPage = Math.ceil(total / items_per_page);
+    const nextPage = Number(page) + 1 <= totalPage ? Number(page) + 1 : null;
+    const prePage = Number(page) - 1 > 0 ? Number(page) - 1 : null;
+
+    return {
+      data: res,
+      total,
+      currentPage: page,
+      items_per_page,
+      totalPage,
+      nextPage,
+      prePage,
+    };
   }
 
   async findAllByPost(post_id: number): Promise<Comment[]> {

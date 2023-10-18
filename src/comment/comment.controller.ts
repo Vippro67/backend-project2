@@ -8,18 +8,21 @@ import {
   Body,
   Req,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { Comment } from './entities/comment.entity';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { query } from 'express';
+import { FilterCommentDto } from './dto/filter-comment.dto';
 
 @Controller('api/v1/comments')
 export class CommentController {
-  constructor(private readonly commentService: CommentService) {}
+  constructor(private commentService: CommentService) {}
 
   @Get()
-  findAll(): Promise<Comment[]> {
-    return this.commentService.findAll();
+  findAll(@Query() query: FilterCommentDto) {
+    return this.commentService.findAll(query);
   }
 
   @Get('post/:post_id')
@@ -56,7 +59,7 @@ export class CommentController {
     @Param('id') id: number,
     @Body() commentData: Partial<Comment>,
   ): Promise<Comment> {
-    return this.commentService.update(id,req.user_data.id, commentData);
+    return this.commentService.update(id, req.user_data.id, commentData);
   }
 
   @UseGuards(AuthGuard)

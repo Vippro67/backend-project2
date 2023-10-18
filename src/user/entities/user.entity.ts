@@ -29,16 +29,21 @@ export class User {
   @Column({ default: 1 })
   status: number;
 
+  @OneToMany(() => Post, (post) => post.user)
+  posts: Post[];
+
+  @OneToMany(() => Comment, (comment) => comment)
+  comments: Comment[];
+
+  @OneToMany(() => User, (user) => user)
+  followers: User[];
+
+  @OneToMany(() => User, (user) => user)
+  following: User[];
+  
   @CreateDateColumn()
   created_at: Date;
 
   @CreateDateColumn()
   updated_at: Date;
-  
-  @OneToMany(() => Post, (post) => post.user)
-  posts: Post[]
-
-  @OneToMany(() => Comment, (comment) => comment)
-  comments: Comment[];
-
 }
