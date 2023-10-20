@@ -2,6 +2,7 @@ import { Post } from 'src/post/entities/post.entity';
 import { Comment } from 'src/comment/entities/comment.entity';
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 import { CreateDateColumn, OneToMany } from 'typeorm';
+import { Message } from 'src/message/entities/message.entity';
 
 @Entity()
 export class User {
@@ -40,6 +41,12 @@ export class User {
 
   @OneToMany(() => User, (user) => user)
   following: User[];
+
+  @OneToMany(() => Message, (message) => message.sender)
+  sentMessages: Message[];
+
+  @OneToMany(() => Message, (message) => message.receiver)
+  receivedMessages: Message[];
   
   @CreateDateColumn()
   created_at: Date;

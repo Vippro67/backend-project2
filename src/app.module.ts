@@ -8,9 +8,10 @@ import { AuthModule } from './auth/auth.module';
 import { PostModule } from './post/post.module';
 import { CommentModule } from './comment/comment.module';
 import { FollowModule } from './follow/follow.module';
+import { MessageModule } from './message/message.module';
 
 @Module({
-  imports: [UserModule, TypeOrmModule.forRoot(dataSourceOptions), AuthModule, PostModule, CommentModule, FollowModule],
+  imports: [UserModule, TypeOrmModule.forRoot(dataSourceOptions), AuthModule, PostModule, CommentModule, FollowModule, MessageModule],
 
   controllers: [AppController],
   providers: [AppService],
