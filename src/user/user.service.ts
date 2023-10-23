@@ -7,6 +7,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { FilterUserDto } from './dto/filter-user.dto';
+import { ApiParam, ApiProperty } from '@nestjs/swagger';
 @Injectable()
 export class UserService {
   constructor(

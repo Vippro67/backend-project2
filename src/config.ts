@@ -1,6 +1,7 @@
 import { randomInt } from 'crypto';
 import { diskStorage } from 'multer';
 
+
 export const storageConfig = (folder: string) =>
   diskStorage({
     destination: `uploads/${folder}`,

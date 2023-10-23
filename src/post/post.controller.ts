@@ -24,6 +24,7 @@ import { UpdatePostDto } from './dto/update-post.dto';
 import { UpdateResult } from 'typeorm';
 import { FilterPostDto } from './dto/filter-post.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { MediaService } from 'src/media/media.service';
 
 @ApiTags('Post')
 @Controller('api/v1/posts')
@@ -43,19 +44,32 @@ export class PostController {
   @UseGuards(AuthGuard)
   @Post()
   @UseInterceptors(
-    FileInterceptor('image', {
-      storage: storageConfig('image'),
+    FileInterceptor('media', {
+      storage: storageConfig('media'),
       fileFilter: (req, file, cb) => {
         const ext = extname(file.originalname);
-        const allowedExtArr = ['.jpg', '.png', '.jpeg'];
-        if (!allowedExtArr.includes(ext)) {
-          req.fileValidationError = `Wrong extension type. Accepted file ext are: ${allowedExtArr.toString()}`;
+        const allowedImageExtArr = ['.jpg', '.png', '.jpeg'];
+        const allowedVideoExtArr = ['.mp4', '.avi', '.mkv'];
+        if (
+          !allowedImageExtArr.includes(ext) &&
+          !allowedVideoExtArr.includes(ext)
+        ) {
+          req.fileValidationError = `Wrong extension type. Accepted file ext are: ${allowedImageExtArr
+            .concat(allowedVideoExtArr)
+            .toString()}`;
           cb(null, false);
         } else {
           const fileSize = parseInt(req.headers['content-length']);
-          if (fileSize > 1024 * 1024 * 5) {
+          if (fileSize > 1024 * 1024 * 5 && allowedImageExtArr.includes(ext)) {
             req.fileValidationError =
               'File size is too large. Accepted file size is less than 5 MB';
+            cb(null, false);
+          } else if (
+            fileSize > 1024 * 1024 * 50 &&
+            allowedVideoExtArr.includes(ext)
+          ) {
+            req.fileValidationError =
+              'File size is too large. Accepted file size is less than 50 MB';
             cb(null, false);
           } else {
             cb(null, true);
@@ -71,28 +85,43 @@ export class PostController {
   ) {
     if (req.fileValidationError) {
       throw new BadRequestException(req.fileValidationError);
-    } else if (file) {
-      createPostDto.image = file.destination + '/' + file.filename;
     }
-    return this.postService.create(req.user_data.id, createPostDto);
+    return this.postService.create(
+      req.user_data.id,
+      createPostDto,
+      file,
+    );
   }
 
   @UseGuards(AuthGuard)
   @Put(':id')
   @UseInterceptors(
-    FileInterceptor('image', {
-      storage: storageConfig('image'),
+    FileInterceptor('media', {
+      storage: storageConfig('media'),
       fileFilter: (req, file, cb) => {
         const ext = extname(file.originalname);
-        const allowedExtArr = ['.jpg', '.png', '.jpeg'];
-        if (!allowedExtArr.includes(ext)) {
-          req.fileValidationError = `Wrong extension type. Accepted file ext are: ${allowedExtArr.toString()}`;
+        const allowedImageExtArr = ['.jpg', '.png', '.jpeg'];
+        const allowedVideoExtArr = ['.mp4', '.avi', '.mkv'];
+        if (
+          !allowedImageExtArr.includes(ext) &&
+          !allowedVideoExtArr.includes(ext)
+        ) {
+          req.fileValidationError = `Wrong extension type. Accepted file ext are: ${allowedImageExtArr
+            .concat(allowedVideoExtArr)
+            .toString()}`;
           cb(null, false);
         } else {
           const fileSize = parseInt(req.headers['content-length']);
-          if (fileSize > 1024 * 1024 * 5) {
+          if (fileSize > 1024 * 1024 * 5 && allowedImageExtArr.includes(ext)) {
             req.fileValidationError =
               'File size is too large. Accepted file size is less than 5 MB';
+            cb(null, false);
+          } else if (
+            fileSize > 1024 * 1024 * 50 &&
+            allowedVideoExtArr.includes(ext)
+          ) {
+            req.fileValidationError =
+              'File size is too large. Accepted file size is less than 50 MB';
             cb(null, false);
           } else {
             cb(null, true);
@@ -109,15 +138,13 @@ export class PostController {
   ): Promise<UpdateResult> {
     if (req.fileValidationError) {
       throw new BadRequestException(req.fileValidationError);
-    } else if (file) {
-      updatePostDto.image = file.destination + '/' + file.filename;
-    }
-    return this.postService.update(id, req.user_data.id, updatePostDto);
+    } 
+    return this.postService.update(id, req.user_data.id, updatePostDto , file);
   }
 
   @UseGuards(AuthGuard)
   @Delete(':id')
-  remove( @Req() req: any,@Param('id') id: number): Promise<void> {
+  remove(@Req() req: any, @Param('id') id: number): Promise<void> {
     return this.postService.remove(id, req.user_data.id);
   }
 }

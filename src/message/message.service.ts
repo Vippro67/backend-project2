@@ -5,6 +5,10 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class MessageService {
+   constructor(
+    @InjectRepository(Message)
+    private readonly messsageRepository: Repository<Message>,
+  ) {}
   findAll() {
     return this.messsageRepository.find({
       order: { created_at: 'DESC' },
@@ -136,10 +140,36 @@ export class MessageService {
       },
     });
   }
-  constructor(
-    @InjectRepository(Message)
-    private readonly messsageRepository: Repository<Message>,
-  ) {}
+  getConversation(id: any, user_id: number): Promise<Message[]> {
+    return this.messsageRepository.find({
+      order: { created_at: 'DESC' },
+      relations: ['sender', 'receiver'],
+      where: {
+        sender: {
+          id: id || user_id,
+        },
+        receiver: {
+          id: user_id || id,
+        },
+      } , 
+      select: {
+        sender: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        receiver: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        content: true,
+        created_at: true,
+      },
+    });
+  }
 
   async create(messageData: Partial<Message>): Promise<Message> {
     const message = await this.messsageRepository.create(messageData);
@@ -163,4 +193,6 @@ export class MessageService {
   async remove(id: number): Promise<void> {
     await this.messsageRepository.delete(id);
   }
+
+
 }

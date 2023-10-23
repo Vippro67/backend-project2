@@ -13,9 +13,11 @@ import {
 import { CommentService } from './comment.service';
 import { Comment } from './entities/comment.entity';
 import { AuthGuard } from 'src/auth/auth.guard';
-import { query } from 'express';
 import { FilterCommentDto } from './dto/filter-comment.dto';
+import { ApiTags } from '@nestjs/swagger';
+import { CreateCommentDto } from './dto/create-comment.dto';
 
+@ApiTags('Comment')
 @Controller('api/v1/comments')
 export class CommentController {
   constructor(private commentService: CommentService) {}
@@ -44,10 +46,10 @@ export class CommentController {
   @Post()
   create(
     @Req() req: any,
-    @Body() commentData: Partial<Comment>,
+    @Body() commentData: CreateCommentDto,
   ): Promise<Comment> {
-    commentData.user = req.user_data.id;
-    commentData.post = req.body.post_id;
+    commentData.user_id = req.user_data.id;
+    commentData.post_id = req.body.post_id;
     // commentData.parentComment = req.body.parent_comment_id || null;
     return this.commentService.create(commentData);
   }

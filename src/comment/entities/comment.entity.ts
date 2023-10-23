@@ -27,9 +27,9 @@ export class Comment {
   @Column()
   comment: string;
 
-  // @ManyToOne(() => Comment, { nullable: true })
-  // @JoinColumn({ name: 'parent_comment_id' })
-  // parentComment: Comment;
+  @ManyToOne(() => Comment, { nullable: true })
+  @JoinColumn({ name: 'replied_comment_id' })
+  repliedComment: Comment;
 
   @CreateDateColumn()
   created_at: Date;
@@ -37,6 +37,6 @@ export class Comment {
   @UpdateDateColumn()
   updated_at: Date;
 
-  // @OneToMany(() => Comment, (comment) => comment.parentComment)
-  // replies: Comment[];
+  @OneToMany(() => Comment, (comment) => comment.repliedComment)
+  replies: Comment[];
 }

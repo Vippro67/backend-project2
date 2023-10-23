@@ -13,9 +13,9 @@ export class RegisterUserDto {
   password: string;
   @ApiProperty()
 
-  firstName: string;
+  first_name: string;
   @ApiProperty()
-  lastName: string;
+  last_name: string;
 
   @ApiProperty()
   status: number;

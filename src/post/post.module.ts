@@ -5,10 +5,11 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Post } from './entities/post.entity';
 import { User } from 'src/user/entities/user.entity';
+import { Media } from 'src/media/entities/media.entity';
 
 @Module({
   imports:[
-    TypeOrmModule.forFeature([Post, User]),
+    TypeOrmModule.forFeature([Post, User,Media]),
     ConfigModule
   ],
   controllers: [PostController],

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
+import { Media } from 'src/media/entities/media.entity';
 
 export class CreatePostDto {
   @ApiProperty()
@@ -11,6 +12,5 @@ export class CreatePostDto {
   description: string;
 
   @ApiProperty()
-  image: string;
-
+  media:Media;
 }

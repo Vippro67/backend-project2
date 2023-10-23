@@ -1,8 +1,10 @@
 import { Controller, Delete, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { FollowService } from './follow.service';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { ApiTags } from '@nestjs/swagger';
 
-@Controller('follow')
+@ApiTags('Follow')
+@Controller('api/v1/follows')
 export class FollowController {
     constructor(
         private followService: FollowService

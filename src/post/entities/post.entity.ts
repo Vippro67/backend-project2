@@ -1,5 +1,6 @@
 import { User } from 'src/user/entities/user.entity';
 import { Comment } from 'src/comment/entities/comment.entity';
+import { Media } from 'src/media/entities/media.entity';
 import {
   Entity,
   Column,
@@ -9,6 +10,7 @@ import {
   UpdateDateColumn,
   OneToMany,
   JoinColumn,
+  ManyToMany,
 } from 'typeorm';
 
 @Entity()
@@ -21,15 +23,15 @@ export class Post {
   })
   @JoinColumn({ name: 'user_id' })
   user: User;
-  
+
   @Column()
   title: string;
 
   @Column()
   description: string;
 
-  @Column({ nullable: true, default: null })
-  image: string;
+  @OneToMany(() => Media, (media) => media.post)
+  medias: Media[];
 
   @OneToMany(() => Comment, (comment) => comment.post)
   comments: Comment[];

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository } from 'typeorm';
 import { Comment } from './entities/comment.entity';
 import { FilterCommentDto } from './dto/filter-comment.dto';
+import { CreateCommentDto } from './dto/create-comment.dto';
 
 @Injectable()
 export class CommentService {
@@ -11,7 +12,7 @@ export class CommentService {
     private readonly commentRepository: Repository<Comment>,
   ) {}
 
-  async findAll(filterquery:FilterCommentDto){
+  async findAll(filterquery: FilterCommentDto) {
     const page = filterquery.page || 1;
     const items_per_page = filterquery.items_per_page || 10;
     const search = filterquery.search || '';
@@ -108,7 +109,7 @@ export class CommentService {
         post: {
           id: true,
           title: true,
-          description: true,  
+          description: true,
         },
         // parentComment: {
         //   id: true,
@@ -139,13 +140,17 @@ export class CommentService {
     });
   }
 
-  async create(commentData: Partial<Comment>): Promise<Comment> {
-    const comment = this.commentRepository.create(commentData);
-    this.commentRepository.save(comment);
+  async create(createCommentDto: CreateCommentDto): Promise<Comment> {
+    const comment = this.commentRepository.create();
+    this.commentRepository.save({ ...createCommentDto, ...comment });
     return comment;
   }
 
-  async update(id: number,user_id:number, commentData: Partial<Comment>): Promise<Comment> {
+  async update(
+    id: number,
+    user_id: number,
+    commentData: Partial<Comment>,
+  ): Promise<Comment> {
     const comment = await this.commentRepository.findOne({
       where: { id },
       relations: ['user'],

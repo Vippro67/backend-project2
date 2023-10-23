@@ -10,6 +10,7 @@ import { LoginUserDto } from './dto/login-user.dto';
 import { AuthService } from './auth.service';
 import { User } from 'src/user/entities/user.entity';
 import { ApiTags } from '@nestjs/swagger';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -29,7 +30,7 @@ export class AuthController {
   }
 
   @Post('refresh-token')
-  async refresh(@Body() token: any): Promise<any> {
-    return this.authService.refresh(token.refresh_token);
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto): Promise<any> {
+    return this.authService.refresh(refreshTokenDto.refresh_token);
   }
 }

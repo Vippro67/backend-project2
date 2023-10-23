@@ -12,8 +12,10 @@ import {
 import { MessageService } from './message.service';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { Message } from './entities/message.entity';
+import { ApiTags } from '@nestjs/swagger';
 
-@Controller('api/v1/message')
+@ApiTags('Message')
+@Controller('api/v1/messages')
 export class MessageController {
   constructor(private messageService: MessageService) {}
 
@@ -41,11 +43,17 @@ export class MessageController {
 
   @UseGuards(AuthGuard)
   @Get('my-messages-to/:receiver_id')
-  findMyMessagesTo(
-    @Req() req: any,
-    @Param('receiver_id') receiver_id: number,
-  ): Promise<Message[]> {
+  findMyMessagesTo(@Req() req: any, @Param('receiver_id') receiver_id: number) {
     return this.messageService.findMyMessagesTo(req.user_data.id, receiver_id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('conversation/user/:user_id')
+  getConversation(
+    @Req() req: any,
+    @Param('user_id') user_id: number,
+  ): Promise<Message[]> {
+    return this.messageService.getConversation(req.user_data.id, user_id);
   }
 
   @UseGuards(AuthGuard)
