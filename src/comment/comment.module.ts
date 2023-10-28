@@ -6,8 +6,9 @@ import { Post } from 'src/post/entities/post.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Comment } from './entities/comment.entity';
 import { ConfigModule } from '@nestjs/config';
+import { Media } from 'src/media/entities/media.entity';
 @Module({
-  imports: [TypeOrmModule.forFeature([Post, User, Comment]),ConfigModule],
+  imports: [TypeOrmModule.forFeature([Post, User, Comment, Media]),ConfigModule],
   providers: [CommentService],
   controllers: [CommentController],
 })

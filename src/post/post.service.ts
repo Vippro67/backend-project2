@@ -26,7 +26,7 @@ export class PostService {
     const skip = items_per_page * (page - 1);
     const [res, total] = await this.postRepository.findAndCount({
       order: { updated_at: 'DESC' },
-      relations: ['user', 'comments', 'medias'],
+      relations: ['user', 'comments', 'media'],
       where: {
         title: Like(`%${search}%`),
         user: {
@@ -45,7 +45,6 @@ export class PostService {
           avatar: true,
         },
         comments: true,
-        medias: true,
       },
     });
     const totalPage = Math.ceil(total / items_per_page);
@@ -63,10 +62,10 @@ export class PostService {
     };
   }
 
-  async findOne(id: number): Promise<Post> {
-    return this.postRepository.findOne({
+  async findOne(id: string): Promise<Post> {
+    return await this.postRepository.findOne({
       where: { id },
-      relations: ['user', 'comments', 'medias'],
+      relations: ['user', 'comments', 'media'],
       select: {
         user: {
           id: true,
@@ -76,13 +75,12 @@ export class PostService {
           avatar: true,
         },
         comments: true,
-        medias: true,
       },
     });
   }
 
   async create(
-    userId: number,
+    userId: string,
     createPostDto: CreatePostDto,
     file: Express.Multer.File,
   ) {
@@ -104,9 +102,15 @@ export class PostService {
         media.link = file.destination + '/' + file.filename;
         media.post = savedPost;
         await this.mediaRepository.save(media);
+        savedPost.media = media;
+        await this.postRepository.update(
+          { id: savedPost.id },
+          { media: media },
+        );
+
         return this.postRepository.findOne({
           where: { id: savedPost.id },
-          relations: ['user', 'comments', 'medias'],
+          relations: ['user', 'comments', 'media'],
           select: {
             user: {
               id: true,
@@ -116,7 +120,6 @@ export class PostService {
               avatar: true,
             },
             comments: true,
-            medias: true,
           },
         });
       }
@@ -129,8 +132,8 @@ export class PostService {
   }
 
   async update(
-    id: number,
-    userId: number,
+    id: string,
+    userId: string,
     postData: Partial<Post>,
     file: Express.Multer.File,
   ): Promise<UpdateResult> {
@@ -147,12 +150,6 @@ export class PostService {
         },
       },
     });
-    if (post.user.id !== userId) {
-      throw new HttpException(
-        'You are not authorized to edit this post',
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
     if (file) {
       const media = new Media();
       const type = file.mimetype.split('/')[0];
@@ -163,13 +160,17 @@ export class PostService {
       }
       media.link = file.destination + '/' + file.filename;
       media.post = post;
-      this.mediaRepository.delete({ post: post });
-      await this.mediaRepository.save(media);
-      
+      await this.mediaRepository.delete({post: post});
+      const savedMedia = await this.mediaRepository.save(media);
+      await this.postRepository.update(post.id, {media: savedMedia});
     }
-    return await this.postRepository.update({ id }, postData);
+    else {
+      await this.mediaRepository.delete({post: post});
+      await this.postRepository.update(post.id, {media: null});   
+    }
+    return await this.postRepository.update(post.id, postData);
   }
-  async remove(id: number, userId: number): Promise<void> {
+  async remove(id: string, userId: string): Promise<void> {
     const post = await this.postRepository.findOne({
       where: { id },
       relations: ['user'],

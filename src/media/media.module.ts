@@ -5,10 +5,12 @@ import { Media } from './entities/media.entity';
 import { Post } from 'src/post/entities/post.entity';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { Message } from 'src/message/entities/message.entity';
+import { Comment } from 'src/comment/entities/comment.entity';
 
 @Module({
   imports:[
-    TypeOrmModule.forFeature([Media, Post]),
+    TypeOrmModule.forFeature([Media, Post,Comment,Message]),
     ConfigModule
   ],
   controllers: [MediaController],

@@ -37,7 +37,7 @@ export class PostController {
   }
 
   @Get(':id')
-  getPostById(@Param('id') id: number): Promise<PostEntity> {
+  getPostById(@Param('id') id: string): Promise<PostEntity> {
     return this.postService.findOne(id);
   }
 
@@ -131,7 +131,7 @@ export class PostController {
     }),
   )
   update(
-    @Param('id') id: number,
+    @Param('id') id: string,
     @Req() req: any,
     @UploadedFile() file: Express.Multer.File,
     @Body() updatePostDto: UpdatePostDto,
@@ -144,7 +144,7 @@ export class PostController {
 
   @UseGuards(AuthGuard)
   @Delete(':id')
-  remove(@Req() req: any, @Param('id') id: number): Promise<void> {
+  remove(@Req() req: any, @Param('id') id: string): Promise<void> {
     return this.postService.remove(id, req.user_data.id);
   }
 }

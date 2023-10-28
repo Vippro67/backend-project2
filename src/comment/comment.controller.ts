@@ -9,13 +9,17 @@ import {
   Req,
   UseGuards,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { Comment } from './entities/comment.entity';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { FilterCommentDto } from './dto/filter-comment.dto';
 import { ApiTags } from '@nestjs/swagger';
-import { CreateCommentDto } from './dto/create-comment.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { storageConfig } from 'src/config';
+import { extname } from 'path';
 
 @ApiTags('Comment')
 @Controller('api/v1/comments')
@@ -28,40 +32,112 @@ export class CommentController {
   }
 
   @Get('post/:post_id')
-  findAllByPost(@Param('post_id') post_id: number): Promise<Comment[]> {
+  findAllByPost(@Param('post_id') post_id: string): Promise<Comment[]> {
     return this.commentService.findAllByPost(post_id);
   }
 
   @Get('user/:user_id')
-  findAllByUser(@Param('user_id') user_id: number): Promise<Comment[]> {
+  findAllByUser(@Param('user_id') user_id: string): Promise<Comment[]> {
     return this.commentService.findAllByUser(user_id);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: number): Promise<Comment> {
+  findOne(@Param('id') id: string): Promise<Comment> {
     return this.commentService.findOne(id);
   }
 
   @UseGuards(AuthGuard)
   @Post()
+  @UseInterceptors(
+    FileInterceptor('media', {
+      storage: storageConfig('media'),
+      fileFilter: (req, file, cb) => {
+        const ext = extname(file.originalname);
+        const allowedImageExtArr = ['.jpg', '.png', '.jpeg'];
+        const allowedVideoExtArr = ['.mp4', '.avi', '.mkv'];
+        if (
+          !allowedImageExtArr.includes(ext) &&
+          !allowedVideoExtArr.includes(ext)
+        ) {
+          req.fileValidationError = `Wrong extension type. Accepted file ext are: ${allowedImageExtArr
+            .concat(allowedVideoExtArr)
+            .toString()}`;
+          cb(null, false);
+        } else {
+          const fileSize = parseInt(req.headers['content-length']);
+          if (fileSize > 1024 * 1024 * 5 && allowedImageExtArr.includes(ext)) {
+            req.fileValidationError =
+              'File size is too large. Accepted file size is less than 5 MB';
+            cb(null, false);
+          } else if (
+            fileSize > 1024 * 1024 * 50 &&
+            allowedVideoExtArr.includes(ext)
+          ) {
+            req.fileValidationError =
+              'File size is too large. Accepted file size is less than 50 MB';
+            cb(null, false);
+          } else {
+            cb(null, true);
+          }
+        }
+      },
+    }),
+  )
   create(
     @Req() req: any,
-    @Body() commentData: CreateCommentDto,
-  ): Promise<Comment> {
-    commentData.user_id = req.user_data.id;
-    commentData.post_id = req.body.post_id;
-    // commentData.parentComment = req.body.parent_comment_id || null;
-    return this.commentService.create(commentData);
+    @Body() commentData: Partial<Comment>,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    commentData.user = req.user_data;
+    if (req.body.parent_comment_id)
+      commentData.repliedComment = req.body.parent_comment_id || null;
+    return this.commentService.create( req.body.post_id,commentData, file);
   }
 
   @UseGuards(AuthGuard)
   @Put(':id')
+  @UseInterceptors(
+    FileInterceptor('media', {
+      storage: storageConfig('media'),
+      fileFilter: (req, file, cb) => {
+        const ext = extname(file.originalname);
+        const allowedImageExtArr = ['.jpg', '.png', '.jpeg'];
+        const allowedVideoExtArr = ['.mp4', '.avi', '.mkv'];
+        if (
+          !allowedImageExtArr.includes(ext) &&
+          !allowedVideoExtArr.includes(ext)
+        ) {
+          req.fileValidationError = `Wrong extension type. Accepted file ext are: ${allowedImageExtArr
+            .concat(allowedVideoExtArr)
+            .toString()}`;
+          cb(null, false);
+        } else {
+          const fileSize = parseInt(req.headers['content-length']);
+          if (fileSize > 1024 * 1024 * 5 && allowedImageExtArr.includes(ext)) {
+            req.fileValidationError =
+              'File size is too large. Accepted file size is less than 5 MB';
+            cb(null, false);
+          } else if (
+            fileSize > 1024 * 1024 * 50 &&
+            allowedVideoExtArr.includes(ext)
+          ) {
+            req.fileValidationError =
+              'File size is too large. Accepted file size is less than 50 MB';
+            cb(null, false);
+          } else {
+            cb(null, true);
+          }
+        }
+      },
+    }),
+  )
   update(
     @Req() req: any,
-    @Param('id') id: number,
+    @Param('id') id: string,
     @Body() commentData: Partial<Comment>,
+    @UploadedFile() file: Express.Multer.File,
   ): Promise<Comment> {
-    return this.commentService.update(id, req.user_data.id, commentData);
+    return this.commentService.update(id, req.user_data.id, commentData, file);
   }
 
   @UseGuards(AuthGuard)

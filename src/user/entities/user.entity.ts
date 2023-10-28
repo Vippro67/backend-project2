@@ -1,13 +1,21 @@
 import { Post } from 'src/post/entities/post.entity';
 import { Comment } from 'src/comment/entities/comment.entity';
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  JoinTable,
+  ManyToMany,
+} from 'typeorm';
 import { CreateDateColumn, OneToMany } from 'typeorm';
 import { Message } from 'src/message/entities/message.entity';
+import { Group } from 'src/group/entities/group.entity';
+import { Tag } from 'src/tag/entities/tag.entity';
 
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   first_name: string;
@@ -36,18 +44,44 @@ export class User {
   @OneToMany(() => Comment, (comment) => comment)
   comments: Comment[];
 
-  @OneToMany(() => User, (user) => user)
-  followers: User[];
-
-  @OneToMany(() => User, (user) => user)
-  following: User[];
-
   @OneToMany(() => Message, (message) => message.sender)
   sentMessages: Message[];
 
   @OneToMany(() => Message, (message) => message.receiver)
   receivedMessages: Message[];
-  
+
+  @ManyToMany(() => Group)
+  @JoinTable({
+    name: 'user_groups',
+    joinColumn: { name: 'user_id' },
+    inverseJoinColumn: { name: 'group_id' },
+  })
+  groups: Group[];
+
+  @ManyToMany(() => User, { cascade: true })
+  @JoinTable({
+    name: 'user_friends',
+    joinColumn: { name: 'user_id' },
+    inverseJoinColumn: { name: 'friend_id' },
+  })
+  friends: User[];
+
+  @ManyToMany(() => User, { cascade: true })
+  @JoinTable({
+    name: 'user_friends',
+    joinColumn: { name: 'friend_id' },
+    inverseJoinColumn: { name: 'user_id' },
+  })
+  friendOf: User[];
+
+  @ManyToMany(() => Tag)
+  @JoinTable({
+    name: 'user_history_tags',
+    joinColumn: { name: 'user_id' },
+    inverseJoinColumn: { name: 'tag_id' },
+  })
+  historyTags: Tag[];
+
   @CreateDateColumn()
   created_at: Date;
 

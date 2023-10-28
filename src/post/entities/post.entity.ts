@@ -11,14 +11,18 @@ import {
   OneToMany,
   JoinColumn,
   ManyToMany,
+  JoinTable,
+  OneToOne,
 } from 'typeorm';
+import { Tag } from 'src/tag/entities/tag.entity';
 
 @Entity()
 export class Post {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => User, (user) => user.posts, {
+    nullable:false ,
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'user_id' })
@@ -30,11 +34,20 @@ export class Post {
   @Column()
   description: string;
 
-  @OneToMany(() => Media, (media) => media.post)
-  medias: Media[];
+  @OneToOne(() => Media, (media) => media.post, { cascade: true, onDelete: 'SET NULL', onUpdate: 'SET NULL' })
+  @JoinColumn({ name: 'media_id' })
+  media: Media;
 
   @OneToMany(() => Comment, (comment) => comment.post)
   comments: Comment[];
+
+  @ManyToMany(() => Tag)
+  @JoinTable({
+    name: 'post_tags',
+    joinColumn: { name: 'post_id' },
+    inverseJoinColumn: { name: 'tag_id' },
+  })
+  tags: Tag[];
 
   @CreateDateColumn()
   created_at: Date;

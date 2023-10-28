@@ -2,12 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { Message } from './entities/message.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Media } from 'src/media/entities/media.entity';
+import { MediaType } from 'src/media/enum/MediaType';
 
 @Injectable()
 export class MessageService {
-   constructor(
+  constructor(
     @InjectRepository(Message)
     private readonly messsageRepository: Repository<Message>,
+    @InjectRepository(Media)
+    private readonly mediaRepository: Repository<Media>,
   ) {}
   findAll() {
     return this.messsageRepository.find({
@@ -33,7 +37,7 @@ export class MessageService {
       },
     });
   }
-  findOne(id: number) {
+  findOne(id: string) {
     return this.messsageRepository.findOne({
       where: { id },
       relations: ['sender', 'receiver'],
@@ -55,7 +59,7 @@ export class MessageService {
       },
     });
   }
-  findAllBySender(sender_id: number) {
+  findAllBySender(sender_id: string) {
     return this.messsageRepository.find({
       order: { created_at: 'DESC' },
       relations: ['sender', 'receiver'],
@@ -82,7 +86,7 @@ export class MessageService {
       },
     });
   }
-  findAllByReceiver(receiver_id: number) {
+  findAllByReceiver(receiver_id: string) {
     return this.messsageRepository.find({
       order: { created_at: 'DESC' },
       relations: ['sender', 'receiver'],
@@ -110,7 +114,7 @@ export class MessageService {
       },
     });
   }
-  findMyMessagesTo(id: any, receiver_id: number) {
+  findMyMessagesTo(id: any, receiver_id: string) {
     return this.messsageRepository.find({
       order: { created_at: 'DESC' },
       relations: ['sender', 'receiver'],
@@ -140,7 +144,7 @@ export class MessageService {
       },
     });
   }
-  getConversation(id: any, user_id: number): Promise<Message[]> {
+  getConversation(id: any, user_id: string): Promise<Message[]> {
     return this.messsageRepository.find({
       order: { created_at: 'DESC' },
       relations: ['sender', 'receiver'],
@@ -151,7 +155,7 @@ export class MessageService {
         receiver: {
           id: user_id || id,
         },
-      } , 
+      },
       select: {
         sender: {
           id: true,
@@ -171,15 +175,39 @@ export class MessageService {
     });
   }
 
-  async create(messageData: Partial<Message>): Promise<Message> {
-    const message = await this.messsageRepository.create(messageData);
-    await this.messsageRepository.save(message);
-    return message;
+  async create(
+    messageData: Partial<Message>,
+    file: Express.Multer.File,
+  ): Promise<Message> {
+    const savedMessage = await this.messsageRepository.save(messageData);
+    let savedMedia;
+    if (file) {
+      const media = new Media();
+      const type = file.mimetype.split('/')[0];
+      if (type == 'image') {
+        media.type = MediaType.IMAGE;
+      } else if (type == 'video') {
+        media.type = MediaType.VIDEO;
+      }
+      media.link = file.destination + '/' + file.filename;
+      media.message = savedMessage;
+      savedMedia = await this.mediaRepository.save(media);
+      await this.messsageRepository
+        .createQueryBuilder()
+        .update(Message) 
+        .set({ media: savedMedia })
+        .where('id = :id', { id: savedMessage.id })
+        .execute();
+    }
+    return this.messsageRepository.findOne({
+      where: { id: savedMessage.id },
+      relations: ['sender', 'receiver', 'media'],
+    });
   }
 
   async update(
-    id: number,
-    user_id: number,
+    id: string,
+    user_id: string,
     messageData: Partial<Message>,
   ): Promise<Message> {
     const message = await this.messsageRepository.findOneBy({ id });
@@ -190,9 +218,7 @@ export class MessageService {
     return this.messsageRepository.findOneBy({ id });
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     await this.messsageRepository.delete(id);
   }
-
-
 }
