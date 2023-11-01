@@ -7,6 +7,7 @@ import { User } from 'src/user/entities/user.entity';
 import { FilterPostDto } from './dto/filter-post.dto';
 import { Media } from 'src/media/entities/media.entity';
 import { MediaType } from 'src/media/enum/MediaType';
+import { Tag } from 'src/tag/entities/tag.entity';
 
 @Injectable()
 export class PostService {
@@ -17,6 +18,8 @@ export class PostService {
     private userRepository: Repository<User>,
     @InjectRepository(Media)
     private mediaRepository: Repository<Media>,
+    @InjectRepository(Tag)
+    private tagRepository: Repository<Tag>,
   ) {}
 
   async findAll(filterquery: FilterPostDto) {
@@ -89,6 +92,7 @@ export class PostService {
     post.title = createPostDto.title;
     post.description = createPostDto.description;
     post.user = user;
+    console.log(createPostDto.tagNames);
     try {
       const savedPost = await this.postRepository.save(post);
       if (file) {
@@ -107,21 +111,28 @@ export class PostService {
           { id: savedPost.id },
           { media: media },
         );
+      }
+      if (createPostDto.tagNames) {
+        const tags: Tag[] = await Promise.all(
+          createPostDto.tagNames.map(async (tagName) => {
+            const lowerCaseTagName = tagName.toLowerCase();
 
-        return this.postRepository.findOne({
-          where: { id: savedPost.id },
-          relations: ['user', 'comments', 'media'],
-          select: {
-            user: {
-              id: true,
-              first_name: true,
-              last_name: true,
-              email: true,
-              avatar: true,
-            },
-            comments: true,
-          },
-        });
+            let tag = await this.tagRepository.findOne({
+              where: { name: lowerCaseTagName },
+            });
+
+            if (!tag) {
+              tag = this.tagRepository.create({ name: lowerCaseTagName });
+              await this.tagRepository.save(tag);
+            }
+
+            return tag;
+          }),
+        );
+        post.tags = tags;
+        const savedPost = await this.postRepository.save(post);
+
+        return savedPost;
       }
     } catch (error) {
       throw new HttpException(
@@ -160,13 +171,12 @@ export class PostService {
       }
       media.link = file.destination + '/' + file.filename;
       media.post = post;
-      await this.mediaRepository.delete({post: post});
+      await this.mediaRepository.delete({ post: post });
       const savedMedia = await this.mediaRepository.save(media);
-      await this.postRepository.update(post.id, {media: savedMedia});
-    }
-    else {
-      await this.mediaRepository.delete({post: post});
-      await this.postRepository.update(post.id, {media: null});   
+      await this.postRepository.update(post.id, { media: savedMedia });
+    } else {
+      await this.mediaRepository.delete({ post: post });
+      await this.postRepository.update(post.id, { media: null });
     }
     return await this.postRepository.update(post.id, postData);
   }

@@ -13,4 +13,7 @@ export class CreatePostDto {
 
   @ApiProperty()
   media:Media;
+
+  @ApiProperty()
+  tagNames: string[];
 }

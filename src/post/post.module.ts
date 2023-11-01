@@ -6,10 +6,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Post } from './entities/post.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Media } from 'src/media/entities/media.entity';
-
+import { Tag } from 'src/tag/entities/tag.entity';
 @Module({
   imports:[
-    TypeOrmModule.forFeature([Post, User,Media]),
+    TypeOrmModule.forFeature([Post, User,Media, Tag]),
     ConfigModule
   ],
   controllers: [PostController],
