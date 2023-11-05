@@ -54,11 +54,20 @@ export class MessageController {
 
   @UseGuards(AuthGuard)
   @Get('conversation/user/:user_id')
-  getConversation(
+  getUserConversation(
     @Req() req: any,
     @Param('user_id') user_id: string,
   ): Promise<Message[]> {
-    return this.messageService.getConversation(req.user_data.id, user_id);
+    return this.messageService.getUserConversation(req.user_data.id, user_id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('conversation/group/:group_id')
+  getGroupConversation(
+    @Req() req: any,
+    @Param('group_id') group_id: string,
+  ): Promise<Message[]> {
+    return this.messageService.getGroupConversation(req.user_data.id, group_id);
   }
 
   @UseGuards(AuthGuard)
@@ -105,9 +114,11 @@ export class MessageController {
   ): Promise<Message> {
     messageData.sender = req.user_data.id;
     messageData.receiver = req.body.receiver_id;
+    messageData.group = req.body.group_id;
     messageData.content = req.body.content;
     return this.messageService.create(messageData, file);
   }
+  
 
   @UseGuards(AuthGuard)
   @Put(':id')

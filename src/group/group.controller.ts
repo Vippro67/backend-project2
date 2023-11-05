@@ -1,4 +1,122 @@
-import { Controller } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { GroupService } from './group.service';
+import { ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { Group } from './entities/group.entity';
+import { CreateGrouptDto } from './dto/create-group.dto';
+import { UpdateGrouptDto } from './dto/update-group.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { extname } from 'path';
+import { storageConfig } from 'src/config';
 
-@Controller('group')
-export class GroupController {}
+@ApiTags('Group')
+@Controller('api/v1/groups')
+export class GroupController {
+  constructor(private groupService: GroupService) {}
+
+  @Get()
+  findAll() {
+    return this.groupService.findAll();
+  }
+
+  @Get(':id')
+  finfOne(@Param('id') id: string): Promise<Group> {
+    return this.groupService.findOne(id);
+  }
+
+  @Get('user/:user_id')
+  findAllByUser(@Param('user_id') user_id: string): Promise<Group[]> {
+    return this.groupService.findAllByUser(user_id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post()
+  @Post('create-group')
+  create(@Req() req: any, @Body() createGroupDto: CreateGrouptDto) {
+    return this.groupService.create(req.user_data.id, createGroupDto);
+  }
+
+  @Post(':id/upload-avatar')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: storageConfig('avatar'),
+      fileFilter: (req, file, cb) => {
+        const ext = extname(file.originalname);
+        const allowedExtArr = ['.jpg', '.png', '.jpeg'];
+        if (!allowedExtArr.includes(ext)) {
+          req.fileValidationError = `Wrong extension type. Accepted file ext are: ${allowedExtArr.toString()}`;
+          cb(null, false);
+        } else {
+          const fileSize = parseInt(req.headers['content-length']);
+          if (fileSize > 1024 * 1024 * 5) {
+            req.fileValidationError =
+              'File size is too large. Accepted file size is less than 5 MB';
+            cb(null, false);
+          } else {
+            cb(null, true);
+          }
+        }
+      },
+    }),
+  )
+  uploadAvatar(
+    @Req() req: any,
+    @UploadedFile() file: Express.Multer.File,
+    @Param('id') id: string,
+  ) {
+    if (req.fileValidationError) {
+      throw new BadRequestException(req.fileValidationError);
+    }
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+    return this.groupService.updateAvatar(
+      req.user_data.id,
+      id,
+      file.destination + '/' + file.filename,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':id/join')
+  join(@Req() req: any, @Param('id') id: string) {
+    return this.groupService.join(req.user_data.id, id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':id/leave')
+  leave(@Req() req: any, @Param('id') id: string) {
+    return this.groupService.leave(req.user_data.id, id);
+  }
+
+
+  @UseGuards(AuthGuard)
+  @Put(':id')
+  update(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() updateGroupDto: UpdateGrouptDto,
+  ) {
+    return this.groupService.update(req.user_data.id, id, updateGroupDto);
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete(':id')
+  remove(@Req() req: any, @Param('id') id: string) {
+    return this.groupService.remove(req.user_data.id, id);
+  }
+}

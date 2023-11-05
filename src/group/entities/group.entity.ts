@@ -15,6 +15,9 @@ export class Group {
   @Column()
   name: string;
 
+  @Column({ nullable: true, default: null })
+  avatar: string;
+
   @ManyToMany(() => User)
   @JoinTable({
     name: 'user_groups',
@@ -22,4 +25,5 @@ export class Group {
     inverseJoinColumn: { name: 'user_id' },
   })
   users: User[];
+
 }

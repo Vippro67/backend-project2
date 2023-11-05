@@ -4,19 +4,25 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Media } from 'src/media/entities/media.entity';
 import { MediaType } from 'src/media/enum/MediaType';
+import { User } from 'src/user/entities/user.entity';
+import { Group } from 'src/group/entities/group.entity';
 
 @Injectable()
 export class MessageService {
   constructor(
     @InjectRepository(Message)
-    private readonly messsageRepository: Repository<Message>,
+    private readonly messageRepository: Repository<Message>,
     @InjectRepository(Media)
     private readonly mediaRepository: Repository<Media>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(Group)
+    private readonly groupRepository: Repository<Group>,
   ) {}
   findAll() {
-    return this.messsageRepository.find({
+    return this.messageRepository.find({
       order: { created_at: 'DESC' },
-      relations: ['sender', 'receiver'],
+      relations: ['sender', 'receiver', 'group'],
       select: {
         id: true,
         content: true,
@@ -33,14 +39,19 @@ export class MessageService {
           last_name: true,
           avatar: true,
         },
+        group: {
+          id: true,
+          name: true,
+          avatar: true,
+        },
         created_at: true,
       },
     });
   }
   findOne(id: string) {
-    return this.messsageRepository.findOne({
+    return this.messageRepository.findOne({
       where: { id },
-      relations: ['sender', 'receiver'],
+      relations: ['sender', 'receiver', 'group'],
       select: {
         sender: {
           id: true,
@@ -54,15 +65,20 @@ export class MessageService {
           last_name: true,
           avatar: true,
         },
+        group: {
+          id: true,
+          name: true,
+          avatar: true,
+        },
         content: true,
         created_at: true,
       },
     });
   }
   findAllBySender(sender_id: string) {
-    return this.messsageRepository.find({
+    return this.messageRepository.find({
       order: { created_at: 'DESC' },
-      relations: ['sender', 'receiver'],
+      relations: ['sender', 'receiver', 'group'],
       where: {
         sender: {
           id: sender_id,
@@ -81,15 +97,20 @@ export class MessageService {
           last_name: true,
           avatar: true,
         },
+        group: {
+          id: true,
+          name: true,
+          avatar: true,
+        },
         content: true,
         created_at: true,
       },
     });
   }
   findAllByReceiver(receiver_id: string) {
-    return this.messsageRepository.find({
+    return this.messageRepository.find({
       order: { created_at: 'DESC' },
-      relations: ['sender', 'receiver'],
+      relations: ['sender', 'receiver', 'group'],
       where: {
         receiver: {
           id: receiver_id,
@@ -110,12 +131,17 @@ export class MessageService {
           last_name: true,
           avatar: true,
         },
+        group: {
+          id: true,
+          name: true,
+          avatar: true,
+        },
         created_at: true,
       },
     });
   }
   findMyMessagesTo(id: any, receiver_id: string) {
-    return this.messsageRepository.find({
+    return this.messageRepository.find({
       order: { created_at: 'DESC' },
       relations: ['sender', 'receiver'],
       where: {
@@ -144,18 +170,14 @@ export class MessageService {
       },
     });
   }
-  getConversation(id: any, user_id: string): Promise<Message[]> {
-    return this.messsageRepository.find({
+  getUserConversation(id: any, user_id: string): Promise<Message[]> {
+    return this.messageRepository.find({
       order: { created_at: 'DESC' },
       relations: ['sender', 'receiver'],
-      where: {
-        sender: {
-          id: id || user_id,
-        },
-        receiver: {
-          id: user_id || id,
-        },
-      },
+      where: [
+        { sender: { id: id }, receiver: { id: user_id } },
+        { sender: { id: user_id }, receiver: { id: id } },
+      ],
       select: {
         sender: {
           id: true,
@@ -164,6 +186,29 @@ export class MessageService {
           avatar: true,
         },
         receiver: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        group: {
+          id: true,
+          name: true,
+          avatar: true,
+        },
+        content: true,
+        created_at: true,
+      },
+    });
+  }
+
+  getGroupConversation(id: any, group_id: string): Promise<Message[]> {
+    return this.messageRepository.find({
+      order: { created_at: 'DESC' },
+      relations: ['sender', 'group'],
+      where: { group: { id: group_id } },
+      select: {
+        sender: {
           id: true,
           first_name: true,
           last_name: true,
@@ -179,7 +224,13 @@ export class MessageService {
     messageData: Partial<Message>,
     file: Express.Multer.File,
   ): Promise<Message> {
-    const savedMessage = await this.messsageRepository.save(messageData);
+    const user = await this.userRepository.findOne({
+      where: { id: messageData.sender.id },
+    });
+    if (!user) {
+      throw new Error('Sender not found');
+    }
+    const savedMessage = await this.messageRepository.save(messageData);
     let savedMedia;
     if (file) {
       const media = new Media();
@@ -192,14 +243,26 @@ export class MessageService {
       media.link = file.destination + '/' + file.filename;
       media.message = savedMessage;
       savedMedia = await this.mediaRepository.save(media);
-      await this.messsageRepository
+      await this.messageRepository
         .createQueryBuilder()
-        .update(Message) 
+        .update(Message)
         .set({ media: savedMedia })
         .where('id = :id', { id: savedMessage.id })
         .execute();
     }
-    return this.messsageRepository.findOne({
+    if (messageData.group) {
+      // Message is for a group
+      const group = await this.groupRepository.findOne({
+        where: { id: messageData.group.id },
+      });
+      if (!group) {
+        throw new Error('Group not found');
+      }
+      // Set the group in the message
+      savedMessage.group = group;
+      await this.messageRepository.save(savedMessage);
+    }
+    return this.messageRepository.findOne({
       where: { id: savedMessage.id },
       relations: ['sender', 'receiver', 'media'],
     });
@@ -210,15 +273,15 @@ export class MessageService {
     user_id: string,
     messageData: Partial<Message>,
   ): Promise<Message> {
-    const message = await this.messsageRepository.findOneBy({ id });
+    const message = await this.messageRepository.findOneBy({ id });
     if (message.sender.id !== user_id) {
       throw new Error('You are not the sender of this message');
     }
-    await this.messsageRepository.update(id, messageData);
-    return this.messsageRepository.findOneBy({ id });
+    await this.messageRepository.update(id, messageData);
+    return this.messageRepository.findOneBy({ id });
   }
 
   async remove(id: string): Promise<void> {
-    await this.messsageRepository.delete(id);
+    await this.messageRepository.delete(id);
   }
 }

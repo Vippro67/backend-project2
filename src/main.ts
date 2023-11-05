@@ -5,7 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = new DocumentBuilder()
-    .setTitle('Pet Social Media API')
+    .setTitle('PetMeFirst Social Media API')
     .setDescription('The Pet Social Media API description')
     .setVersion('1.0')
     .addTag('Project2')
