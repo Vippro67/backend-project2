@@ -7,6 +7,7 @@ import { Media } from 'src/media/entities/media.entity';
 import { MediaType } from 'src/media/enum/MediaType';
 import { Post } from 'src/post/entities/post.entity';
 import { User } from 'src/user/entities/user.entity';
+import { CreateCommnetDto } from './dto/create-comment.dto';
 
 @Injectable()
 export class CommentService {
@@ -151,17 +152,23 @@ export class CommentService {
 
   async create(
     post_id: string,
-    createCommentDto: Partial<Comment>,
+    user_id: string,
+    createCommentDto: CreateCommnetDto,
     file: Express.Multer.File,
   ) {
+    const cmt = new Comment()
+    cmt.comment=createCommentDto.comment;
+    cmt.user = await this.userRepository.findOne({where:{id:user_id}});
+    cmt.post = await this.postRepository.findOne({where:{id:post_id}});
+    const savedComment = await this.commentRepository.save(cmt);
     const post = await this.postRepository.findOne({
       where: { id: post_id },
     });
     if (!post) {
       throw new HttpException('Post not found', HttpStatus.NOT_FOUND);
     }
-    createCommentDto.post = post;
-    const savedComment = await this.commentRepository.save(createCommentDto);
+    savedComment.post = post;
+    await this.commentRepository.save(savedComment);
 
     if (file) {
       const media = new Media();
@@ -196,9 +203,6 @@ export class CommentService {
           link: true,
           type: true,
         },
-        // parentComment: {
-        //   id: true,
-        // },
       },
     });
   }

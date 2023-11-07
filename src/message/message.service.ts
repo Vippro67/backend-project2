@@ -6,6 +6,8 @@ import { Media } from 'src/media/entities/media.entity';
 import { MediaType } from 'src/media/enum/MediaType';
 import { User } from 'src/user/entities/user.entity';
 import { Group } from 'src/group/entities/group.entity';
+import { CreateCommnetDto } from 'src/comment/dto/create-comment.dto';
+import { CreateMessageDto } from './dto/create-message.dto';
 
 @Injectable()
 export class MessageService {
@@ -221,15 +223,23 @@ export class MessageService {
   }
 
   async create(
-    messageData: Partial<Message>,
+    user_id: string,
+    createMessageDto:CreateMessageDto ,
     file: Express.Multer.File,
   ): Promise<Message> {
     const user = await this.userRepository.findOne({
-      where: { id: messageData.sender.id },
+      where: { id: user_id },
     });
     if (!user) {
       throw new Error('Sender not found');
     }
+    const messageData = new Message();
+    messageData.content = createMessageDto.content;
+    messageData.sender = user;
+    if(createMessageDto.receiver_id!= undefined)
+      messageData.receiver = await this.userRepository.findOne({where:{id:createMessageDto.receiver_id}});
+    if(createMessageDto.group_id!=undefined)
+    messageData.group = await this.groupRepository.findOne({where:{id:createMessageDto.group_id}});
     const savedMessage = await this.messageRepository.save(messageData);
     let savedMedia;
     if (file) {
@@ -264,7 +274,30 @@ export class MessageService {
     }
     return this.messageRepository.findOne({
       where: { id: savedMessage.id },
-      relations: ['sender', 'receiver', 'media'],
+      relations: ['sender', 'receiver','group', 'media'],
+      select: {
+        id: true,
+        content: true,
+
+        sender: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        receiver: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        group: {
+          id: true,
+          name: true,
+          avatar: true,
+        },
+        created_at: true,
+      },
     });
   }
 

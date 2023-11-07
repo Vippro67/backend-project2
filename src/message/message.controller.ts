@@ -18,6 +18,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { storageConfig } from 'src/config';
 import { extname } from 'path';
+import { CreateMessageDto } from './dto/create-message.dto';
 
 @ApiTags('Message')
 @Controller('api/v1/messages')
@@ -49,7 +50,7 @@ export class MessageController {
   @UseGuards(AuthGuard)
   @Get('my-messages-to/:receiver_id')
   findMyMessagesTo(@Req() req: any, @Param('receiver_id') receiver_id: string) {
-    return this.messageService.findMyMessagesTo(req.user_data.id, receiver_id);
+    return this.messageService.findMyMessagesTo(req.user_data, receiver_id);
   }
 
   @UseGuards(AuthGuard)
@@ -58,7 +59,7 @@ export class MessageController {
     @Req() req: any,
     @Param('user_id') user_id: string,
   ): Promise<Message[]> {
-    return this.messageService.getUserConversation(req.user_data.id, user_id);
+    return this.messageService.getUserConversation(req.user_data, user_id);
   }
 
   @UseGuards(AuthGuard)
@@ -67,7 +68,7 @@ export class MessageController {
     @Req() req: any,
     @Param('group_id') group_id: string,
   ): Promise<Message[]> {
-    return this.messageService.getGroupConversation(req.user_data.id, group_id);
+    return this.messageService.getGroupConversation(req.user_data, group_id);
   }
 
   @UseGuards(AuthGuard)
@@ -109,27 +110,12 @@ export class MessageController {
   )
   create(
     @Req() req: any,
-    @Body() messageData: Partial<Message>,
+    @Body() createMessageDto: CreateMessageDto,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<Message> {
-    messageData.sender = req.user_data.id;
-    messageData.receiver = req.body.receiver_id;
-    messageData.group = req.body.group_id;
-    messageData.content = req.body.content;
-    return this.messageService.create(messageData, file);
+    return this.messageService.create(req.user_data.id,createMessageDto, file);
   }
   
-
-  @UseGuards(AuthGuard)
-  @Put(':id')
-  update(
-    @Req() req: any,
-    @Param('id') id: string,
-    @Body() messageData: Partial<Message>,
-  ): Promise<Message> {
-    return this.messageService.update(id, req.user_data.id, messageData);
-  }
-
   @UseGuards(AuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string): Promise<void> {

@@ -8,6 +8,7 @@ import { FilterPostDto } from './dto/filter-post.dto';
 import { Media } from 'src/media/entities/media.entity';
 import { MediaType } from 'src/media/enum/MediaType';
 import { Tag } from 'src/tag/entities/tag.entity';
+import { UpdatePostDto } from './dto/update-post.dto';
 
 @Injectable()
 export class PostService {
@@ -29,7 +30,7 @@ export class PostService {
     const skip = items_per_page * (page - 1);
     const [res, total] = await this.postRepository.findAndCount({
       order: { updated_at: 'DESC' },
-      relations: ['user', 'comments', 'media'],
+      relations: ['user', 'comments', 'media', 'tags'],
       where: {
         title: Like(`%${search}%`),
         user: {
@@ -48,6 +49,9 @@ export class PostService {
           avatar: true,
         },
         comments: true,
+        tags: {
+          name: true,
+        },
       },
     });
     const totalPage = Math.ceil(total / items_per_page);
@@ -68,7 +72,7 @@ export class PostService {
   async findOne(id: string): Promise<Post> {
     return await this.postRepository.findOne({
       where: { id },
-      relations: ['user', 'comments', 'media'],
+      relations: ['user', 'comments', 'media', 'tags'],
       select: {
         user: {
           id: true,
@@ -78,6 +82,9 @@ export class PostService {
           avatar: true,
         },
         comments: true,
+        tags: {
+          name: true,
+        },
       },
     });
   }
@@ -92,7 +99,6 @@ export class PostService {
     post.title = createPostDto.title;
     post.description = createPostDto.description;
     post.user = user;
-    console.log(createPostDto.tagNames);
     try {
       const savedPost = await this.postRepository.save(post);
       if (file) {
@@ -116,23 +122,36 @@ export class PostService {
         const tags: Tag[] = await Promise.all(
           createPostDto.tagNames.map(async (tagName) => {
             const lowerCaseTagName = tagName.toLowerCase();
-
             let tag = await this.tagRepository.findOne({
               where: { name: lowerCaseTagName },
             });
-
             if (!tag) {
               tag = this.tagRepository.create({ name: lowerCaseTagName });
               await this.tagRepository.save(tag);
             }
-
             return tag;
           }),
         );
         post.tags = tags;
         const savedPost = await this.postRepository.save(post);
 
-        return savedPost;
+        return this.postRepository.findOne({
+          where: { id:savedPost.id },
+          relations: ['user', 'comments', 'media', 'tags'],
+          select: {
+            user: {
+              id: true,
+              first_name: true,
+              last_name: true,
+              email: true,
+              avatar: true,
+            },
+            comments: true,
+            tags: {
+              name: true,
+            },
+          },
+        });     
       }
     } catch (error) {
       throw new HttpException(
@@ -145,7 +164,7 @@ export class PostService {
   async update(
     id: string,
     userId: string,
-    postData: Partial<Post>,
+    updatePostDto: UpdatePostDto,
     file: Express.Multer.File,
   ): Promise<UpdateResult> {
     const post = await this.postRepository.findOne({
@@ -161,6 +180,12 @@ export class PostService {
         },
       },
     });
+    if (post.user.id !== userId) {
+      throw new HttpException(
+        'You are not authorized to update this post',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
     if (file) {
       const media = new Media();
       const type = file.mimetype.split('/')[0];
@@ -178,7 +203,29 @@ export class PostService {
       await this.mediaRepository.delete({ post: post });
       await this.postRepository.update(post.id, { media: null });
     }
-    return await this.postRepository.update(post.id, postData);
+    if (updatePostDto.tagNames && Array.isArray(updatePostDto.tagNames)) {
+      const tags: Tag[] = await Promise.all(
+        updatePostDto.tagNames.map(async (tagName) => {
+          const lowerCaseTagName = tagName.toLowerCase();
+          let tag = await this.tagRepository.findOne({
+            where: { name: lowerCaseTagName },
+          });
+          if (!tag) {
+            tag = this.tagRepository.create({ name: lowerCaseTagName });
+            await this.tagRepository.save(tag);
+          }
+          return tag;
+        }),
+      );
+      post.tags = tags;
+    }
+    
+    return await this.postRepository.update(post.id, {
+      title: updatePostDto.title,
+      description: updatePostDto.description,
+      media: post.media,
+      tags: post.tags,
+    });
   }
   async remove(id: string, userId: string): Promise<void> {
     const post = await this.postRepository.findOne({

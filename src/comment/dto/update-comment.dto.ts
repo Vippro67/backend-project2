@@ -2,18 +2,12 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
 import { Media } from 'src/media/entities/media.entity';
 
-export class UpdatePostDto {
+export class UpdateCommentDto {
   @ApiProperty()
   @IsNotEmpty()
-  title: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  description: string;
+  comment: string;
 
   @ApiProperty()
   media:Media;
 
-  @ApiProperty()
-  tagNames: string[];
 }

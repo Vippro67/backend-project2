@@ -20,6 +20,8 @@ import { ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { storageConfig } from 'src/config';
 import { extname } from 'path';
+import { CreateCommnetDto } from './dto/create-comment.dto';
+import { UpdateCommentDto } from './dto/update-comment.dto';
 
 @ApiTags('Comment')
 @Controller('api/v1/comments')
@@ -85,13 +87,10 @@ export class CommentController {
   )
   create(
     @Req() req: any,
-    @Body() commentData: Partial<Comment>,
+    @Body() createCommentDto: CreateCommnetDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    commentData.user = req.user_data;
-    if (req.body.parent_comment_id)
-      commentData.repliedComment = req.body.parent_comment_id || null;
-    return this.commentService.create( req.body.post_id,commentData, file);
+    return this.commentService.create(req.body.post_id,req.body.user_data, createCommentDto, file);
   }
 
   @UseGuards(AuthGuard)
@@ -134,10 +133,15 @@ export class CommentController {
   update(
     @Req() req: any,
     @Param('id') id: string,
-    @Body() commentData: Partial<Comment>,
+    @Body() updateCommentDto: UpdateCommentDto,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<Comment> {
-    return this.commentService.update(id, req.user_data.id, commentData, file);
+    return this.commentService.update(
+      id,
+      req.user_data.id,
+      updateCommentDto,
+      file,
+    );
   }
 
   @UseGuards(AuthGuard)
