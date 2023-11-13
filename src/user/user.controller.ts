@@ -21,7 +21,6 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { FilterUserDto } from './dto/filter-user.dto';
 import { ApiBearerAuth, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { storageConfig } from 'src/config';
 import { extname } from 'path';
 
 @ApiBearerAuth()
@@ -45,7 +44,6 @@ export class UserController {
   @UseGuards(AuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
-      storage: storageConfig('avatar'),
       fileFilter: (req, file, cb) => {
         const ext = extname(file.originalname);
         const allowedExtArr = ['.jpg', '.png', '.jpeg'];
@@ -72,10 +70,7 @@ export class UserController {
     if (!file) {
       throw new BadRequestException('File is required');
     }
-    return this.userService.updateAvatar(
-      req.user_data.id,
-      file.destination + '/' + file.filename,
-    );
+    return this.userService.updateAvatar(req.user_data.id, file);
   }
   @UseGuards(AuthGuard)
   @Get(':id')

@@ -1,7 +1,7 @@
 import { DataSourceOptions, DataSource } from 'typeorm';
 import { ConfigModule } from '@nestjs/config';
 export const dataSourceOptions: DataSourceOptions = {
-  type: 'postgres',
+  type: 'mysql',
   host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT),
   username: process.env.DB_USERNAME,
@@ -10,7 +10,6 @@ export const dataSourceOptions: DataSourceOptions = {
   entities: ['dist/**/*.entity{.ts,.js}'],
   migrations: ['dist/db/migrations/*{.ts,.js}'],
   synchronize: false,
-  ssl: true,
 };
 
 const dataSource = new DataSource(dataSourceOptions);

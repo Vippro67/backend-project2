@@ -1,4 +1,9 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository } from 'typeorm';
 import { Comment } from './entities/comment.entity';
@@ -8,6 +13,7 @@ import { MediaType } from 'src/media/enum/MediaType';
 import { Post } from 'src/post/entities/post.entity';
 import { User } from 'src/user/entities/user.entity';
 import { CreateCommnetDto } from './dto/create-comment.dto';
+import * as AWS from 'aws-sdk';
 
 @Injectable()
 export class CommentService {
@@ -21,6 +27,15 @@ export class CommentService {
     @InjectRepository(Media)
     private mediaRepository: Repository<Media>,
   ) {}
+  keyID: string = process.env.AWS_ACCESS_KEY_ID;
+  keySecret: string = process.env.AWS_SECRET_ACCESS_KEY;
+  region: string = process.env.AWS_REGION;
+  bucketName: string = process.env.AWS_S3_BUCKET_NAME;
+
+  s3 = new AWS.S3({
+    accessKeyId: this.keyID,
+    secretAccessKey: this.keySecret,
+  });
 
   async findAll(filterquery: FilterCommentDto) {
     const page = filterquery.page || 1;
@@ -45,9 +60,11 @@ export class CommentService {
         post: {
           id: true,
         },
-        // parentComment: {
-        //   id: true,
-        // },
+        comment: true,
+        repliedComment: {
+          id: true,
+        },
+        created_at: true,
       },
     });
     const totalPage = Math.ceil(total / items_per_page);
@@ -68,7 +85,7 @@ export class CommentService {
   async findAllByPost(post_id: string): Promise<Comment[]> {
     return this.commentRepository.find({
       order: { updated_at: 'DESC' },
-      relations: ['user', 'post'],
+      relations: ['user', 'post', 'replies', 'repliedComment'],
       where: {
         post: {
           id: post_id,
@@ -84,21 +101,20 @@ export class CommentService {
         post: {
           id: true,
         },
-        // parentComment: {
-        //   id: true,
-        // },
-        // replies: {
-        //   id: true,
-        //   comment: true,
-        //   created_at: true,
-        //   updated_at: true,
-        //   user: {
-        //     id: true,
-        //     first_name: true,
-        //     last_name: true,
-        //     avatar: true,
-        //   },
-        // },
+        repliedComment: {
+          id: true,
+        },
+        replies: {
+          id: true,
+          comment: true,
+          user: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            avatar: true,
+          },
+          created_at: true,
+        },
       },
     });
   }
@@ -106,32 +122,11 @@ export class CommentService {
   async findAllByUser(user_id: string): Promise<Comment[]> {
     return this.commentRepository.find({
       order: { updated_at: 'DESC' },
-      relations: ['user', 'post'],
+      relations: ['user', 'post', 'replies', 'repliedComment'],
       where: {
         user: {
           id: user_id,
         },
-      },
-      select: {
-        user: {
-          id: true,
-        },
-        post: {
-          id: true,
-          title: true,
-          description: true,
-        },
-        // parentComment: {
-        //   id: true,
-        // },
-      },
-    });
-  }
-
-  async findOne(id: string): Promise<Comment> {
-    return this.commentRepository.findOne({
-      where: {
-        id: id,
       },
       select: {
         user: {
@@ -143,9 +138,55 @@ export class CommentService {
         post: {
           id: true,
         },
-        // parentComment: {
-        //   id: true,
-        // },
+        repliedComment: {
+          id: true,
+        },
+        replies: {
+          id: true,
+          comment: true,
+          user: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            avatar: true,
+          },
+          created_at: true,
+        },
+      },
+    });
+  }
+
+  async findOne(id: string): Promise<Comment[]> {
+    return this.commentRepository.find({
+      order: { updated_at: 'DESC' },
+      relations: ['user', 'post', 'replies', 'repliedComment'],
+      where: {
+       id: id,
+      },
+      select: {
+        user: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        post: {
+          id: true,
+        },
+        repliedComment: {
+          id: true,
+        },
+        replies: {
+          id: true,
+          comment: true,
+          user: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            avatar: true,
+          },
+          created_at: true,
+        },
       },
     });
   }
@@ -156,10 +197,15 @@ export class CommentService {
     createCommentDto: CreateCommnetDto,
     file: Express.Multer.File,
   ) {
-    const cmt = new Comment()
-    cmt.comment=createCommentDto.comment;
-    cmt.user = await this.userRepository.findOne({where:{id:user_id}});
-    cmt.post = await this.postRepository.findOne({where:{id:post_id}});
+    const cmt = new Comment();
+    cmt.comment = createCommentDto.comment;
+    cmt.user = await this.userRepository.findOne({ where: { id: user_id } });
+    cmt.post = await this.postRepository.findOne({ where: { id: post_id } });
+    if (createCommentDto.replied_comment_id) {
+      cmt.repliedComment = await this.commentRepository.findOne({
+        where: { id: createCommentDto.replied_comment_id },
+      });
+    }
     const savedComment = await this.commentRepository.save(cmt);
     const post = await this.postRepository.findOne({
       where: { id: post_id },
@@ -178,7 +224,19 @@ export class CommentService {
       } else if (type == 'video') {
         media.type = MediaType.VIDEO;
       }
-      media.link = file.destination + '/' + file.filename;
+      const params = {
+        Bucket: this.bucketName,
+        Key: `comment/${Date.now()}_${file.originalname}`,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        ACL: 'public-read',
+      };
+      try {
+        const result = await this.s3.upload(params).promise();
+        media.link = result.Location;
+      } catch (error) {
+        throw new BadRequestException('Failed to upload media comment' + error);
+      }
       media.comment = savedComment;
       const savedMedia = await this.mediaRepository.save(media);
       await this.commentRepository.update(savedComment.id, {
@@ -187,7 +245,7 @@ export class CommentService {
     }
     return this.commentRepository.findOne({
       where: { id: savedComment.id },
-      relations: ['user', 'post', 'media'],
+      relations: ['user', 'post', 'media', 'repliedComment', 'replies'],
       select: {
         user: {
           id: true,
@@ -202,6 +260,14 @@ export class CommentService {
           id: true,
           link: true,
           type: true,
+        },
+        repliedComment: {
+          id: true,
+        },
+        replies: {
+          id: true,
+          comment: true,
+          created_at: true,
         },
       },
     });
@@ -236,7 +302,19 @@ export class CommentService {
       } else if (type == 'video') {
         media.type = MediaType.VIDEO;
       }
-      media.link = file.destination + '/' + file.filename;
+      const params = {
+        Bucket: this.bucketName,
+        Key: `comment/${Date.now()}_${file.originalname}`,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        ACL: 'public-read',
+      };
+      try {
+        const result = await this.s3.upload(params).promise();
+        media.link = result.Location;
+      } catch (error) {
+        throw new BadRequestException('Failed to upload media comment' + error);
+      }
       media.comment = comment;
       await this.mediaRepository.delete({ comment: comment });
 

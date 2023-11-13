@@ -20,7 +20,6 @@ import { CreateGrouptDto } from './dto/create-group.dto';
 import { UpdateGrouptDto } from './dto/update-group.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
-import { storageConfig } from 'src/config';
 
 @ApiTags('Group')
 @Controller('api/v1/groups')
@@ -53,7 +52,6 @@ export class GroupController {
   @UseGuards(AuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
-      storage: storageConfig('avatar'),
       fileFilter: (req, file, cb) => {
         const ext = extname(file.originalname);
         const allowedExtArr = ['.jpg', '.png', '.jpeg'];
@@ -87,7 +85,7 @@ export class GroupController {
     return this.groupService.updateAvatar(
       req.user_data.id,
       id,
-      file.destination + '/' + file.filename,
+      file,
     );
   }
 

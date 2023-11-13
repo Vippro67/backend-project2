@@ -18,7 +18,6 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { FilterCommentDto } from './dto/filter-comment.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { storageConfig } from 'src/config';
 import { extname } from 'path';
 import { CreateCommnetDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
@@ -44,7 +43,7 @@ export class CommentController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Comment> {
+  findOne(@Param('id') id: string): Promise<Comment[]> {
     return this.commentService.findOne(id);
   }
 
@@ -52,7 +51,6 @@ export class CommentController {
   @Post()
   @UseInterceptors(
     FileInterceptor('media', {
-      storage: storageConfig('media'),
       fileFilter: (req, file, cb) => {
         const ext = extname(file.originalname);
         const allowedImageExtArr = ['.jpg', '.png', '.jpeg'];
@@ -97,7 +95,6 @@ export class CommentController {
   @Put(':id')
   @UseInterceptors(
     FileInterceptor('media', {
-      storage: storageConfig('media'),
       fileFilter: (req, file, cb) => {
         const ext = extname(file.originalname);
         const allowedImageExtArr = ['.jpg', '.png', '.jpeg'];

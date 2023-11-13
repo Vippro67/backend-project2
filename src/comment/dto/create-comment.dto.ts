@@ -16,6 +16,6 @@ export class CreateCommnetDto {
     media:Media;
 
     @ApiProperty()
-    parent_comment_id:string;
+    replied_comment_id:string;
 
 }

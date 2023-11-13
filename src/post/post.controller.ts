@@ -17,14 +17,12 @@ import { PostService } from './post.service';
 import { Post as PostEntity } from './entities/post.entity';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { storageConfig } from 'src/config';
 import { extname } from 'path';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { UpdateResult } from 'typeorm';
 import { FilterPostDto } from './dto/filter-post.dto';
 import { ApiTags } from '@nestjs/swagger';
-import { MediaService } from 'src/media/media.service';
 
 @ApiTags('Post')
 @Controller('api/v1/posts')
@@ -45,7 +43,6 @@ export class PostController {
   @Post()
   @UseInterceptors(
     FileInterceptor('media', {
-      storage: storageConfig('media'),
       fileFilter: (req, file, cb) => {
         const ext = extname(file.originalname);
         const allowedImageExtArr = ['.jpg', '.png', '.jpeg'];
@@ -97,7 +94,6 @@ export class PostController {
   @Put(':id')
   @UseInterceptors(
     FileInterceptor('media', {
-      storage: storageConfig('media'),
       fileFilter: (req, file, cb) => {
         const ext = extname(file.originalname);
         const allowedImageExtArr = ['.jpg', '.png', '.jpeg'];
@@ -135,7 +131,7 @@ export class PostController {
     @Req() req: any,
     @UploadedFile() file: Express.Multer.File,
     @Body() updatePostDto: UpdatePostDto,
-  ): Promise<UpdateResult> {
+  ) {
     if (req.fileValidationError) {
       throw new BadRequestException(req.fileValidationError);
     } 

@@ -16,7 +16,6 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { Message } from './entities/message.entity';
 import { ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { storageConfig } from 'src/config';
 import { extname } from 'path';
 import { CreateMessageDto } from './dto/create-message.dto';
 
@@ -75,7 +74,6 @@ export class MessageController {
   @Post()
   @UseInterceptors(
     FileInterceptor('media', {
-      storage: storageConfig('media'),
       fileFilter: (req, file, cb) => {
         const ext = extname(file.originalname);
         const allowedImageExtArr = ['.jpg', '.png', '.jpeg'];
