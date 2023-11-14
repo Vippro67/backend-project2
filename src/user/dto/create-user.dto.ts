@@ -18,5 +18,8 @@ export class CreateUserDto {
   lastName: string;
 
   @ApiProperty()
+  userType: string 
+
+  @ApiProperty()
   status: number;
 }

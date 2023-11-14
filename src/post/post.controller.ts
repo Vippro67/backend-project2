@@ -28,17 +28,6 @@ import { ApiTags } from '@nestjs/swagger';
 @Controller('api/v1/posts')
 export class PostController {
   constructor(private readonly postService: PostService) {}
-
-  @Get()
-  getAllPost(@Query() filterquery: FilterPostDto) {
-    return this.postService.findAll(filterquery);
-  }
-
-  @Get(':id')
-  getPostById(@Param('id') id: string): Promise<PostEntity> {
-    return this.postService.findOne(id);
-  }
-
   @UseGuards(AuthGuard)
   @Post()
   @UseInterceptors(
@@ -83,11 +72,7 @@ export class PostController {
     if (req.fileValidationError) {
       throw new BadRequestException(req.fileValidationError);
     }
-    return this.postService.create(
-      req.user_data.id,
-      createPostDto,
-      file,
-    );
+    return this.postService.create(req.user_data.id, createPostDto, file);
   }
 
   @UseGuards(AuthGuard)
@@ -134,13 +119,28 @@ export class PostController {
   ) {
     if (req.fileValidationError) {
       throw new BadRequestException(req.fileValidationError);
-    } 
-    return this.postService.update(id, req.user_data.id, updatePostDto , file);
+    }
+    return this.postService.update(id, req.user_data.id, updatePostDto, file);
   }
 
   @UseGuards(AuthGuard)
   @Delete(':id')
   remove(@Req() req: any, @Param('id') id: string): Promise<void> {
     return this.postService.remove(id, req.user_data.id);
+  }
+  @Get()
+  getAllPost(@Query() filterquery: FilterPostDto) {
+    return this.postService.findAll(filterquery);
+  }
+
+  @Get(':id')
+  getPostById(@Param('id') id: string): Promise<PostEntity> {
+    return this.postService.findOne(id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':id/like')
+  async togglePostLike (@Req() req: any, @Param('id') id: string) : Promise<any> {
+    await this.postService.togglePostLike(id, req.user_data.id);
   }
 }

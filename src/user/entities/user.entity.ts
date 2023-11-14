@@ -11,6 +11,7 @@ import { CreateDateColumn, OneToMany } from 'typeorm';
 import { Message } from 'src/message/entities/message.entity';
 import { Group } from 'src/group/entities/group.entity';
 import { Tag } from 'src/tag/entities/tag.entity';
+import { Relationship } from 'src/relationship/entities/relationship.entity';
 
 @Entity()
 export class User {
@@ -58,21 +59,19 @@ export class User {
   })
   groups: Group[];
 
-  @ManyToMany(() => User, { cascade: true })
+  @ManyToMany(() => Post)
   @JoinTable({
-    name: 'user_friends',
+    name: 'post_likes',
     joinColumn: { name: 'user_id' },
-    inverseJoinColumn: { name: 'friend_id' },
+    inverseJoinColumn: { name: 'post_id' },
   })
-  friends: User[];
+  likedPosts: Post[];
 
-  @ManyToMany(() => User, { cascade: true })
-  @JoinTable({
-    name: 'user_friends',
-    joinColumn: { name: 'friend_id' },
-    inverseJoinColumn: { name: 'user_id' },
-  })
-  friendOf: User[];
+  @ManyToMany(() => Relationship, (relationship) => relationship.user)
+  friends: Relationship[];
+
+  @ManyToMany(() => Relationship, (relationship) => relationship.friend)
+  friendOf: Relationship[];
 
   @ManyToMany(() => Tag)
   @JoinTable({
@@ -81,6 +80,9 @@ export class User {
     inverseJoinColumn: { name: 'tag_id' },
   })
   historyTags: Tag[];
+
+  @Column({ default: 'regular' }) // regular, admin
+  userType: string;
 
   @CreateDateColumn()
   created_at: Date;

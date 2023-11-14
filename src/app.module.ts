@@ -12,13 +12,14 @@ import { MediaModule } from './media/media.module';
 import { GroupModule } from './group/group.module';
 import { TagModule } from './tag/tag.module';
 import { ConfigModule } from '@nestjs/config';
+import { RelationshipModule } from './relationship/relationship.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
     envFilePath: '.env',
     isGlobal: true,
   })
-  , TypeOrmModule.forRoot(dataSourceOptions),UserModule, AuthModule, PostModule, CommentModule, MessageModule, MediaModule, TagModule , GroupModule],
+  , TypeOrmModule.forRoot(dataSourceOptions),UserModule, AuthModule, PostModule, CommentModule, MessageModule, MediaModule, TagModule , GroupModule, RelationshipModule],
 
   controllers: [AppController],
   providers: [AppService],

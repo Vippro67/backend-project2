@@ -37,72 +37,6 @@ export class PostService {
     accessKeyId: this.keyID,
     secretAccessKey: this.keySecret,
   });
-  async findAll(filterquery: FilterPostDto) {
-    const page = filterquery.page || 1;
-    const items_per_page = filterquery.items_per_page || 10;
-    const search = filterquery.search || '';
-    const skip = items_per_page * (page - 1);
-    const [res, total] = await this.postRepository.findAndCount({
-      order: { updated_at: 'DESC' },
-      relations: ['user', 'comments', 'media', 'tags'],
-      where: {
-        title: Like(`%${search}%`),
-        user: {
-          first_name: Like(`%${search}%`),
-          last_name: Like(`%${search}%`),
-        },
-      },
-      take: items_per_page,
-      skip: skip,
-      select: {
-        user: {
-          id: true,
-          first_name: true,
-          last_name: true,
-          email: true,
-          avatar: true,
-        },
-        comments: true,
-        tags: {
-          name: true,
-        },
-      },
-    });
-    const totalPage = Math.ceil(total / items_per_page);
-    const nextPage = Number(page) + 1 <= totalPage ? Number(page) + 1 : null;
-    const prePage = Number(page) - 1 > 0 ? Number(page) - 1 : null;
-
-    return {
-      data: res,
-      total,
-      currentPage: page,
-      items_per_page,
-      totalPage,
-      nextPage,
-      prePage,
-    };
-  }
-
-  async findOne(id: string): Promise<Post> {
-    return await this.postRepository.findOne({
-      where: { id },
-      relations: ['user', 'comments', 'media', 'tags'],
-      select: {
-        user: {
-          id: true,
-          first_name: true,
-          last_name: true,
-          email: true,
-          avatar: true,
-        },
-        comments: true,
-        tags: {
-          name: true,
-        },
-      },
-    });
-  }
-
   async create(
     userId: string,
     createPostDto: CreatePostDto,
@@ -163,7 +97,6 @@ export class PostService {
           const tagNamesString = JSON.stringify(tagNames);
           const cleanedTagNames = tagNamesString.replace(/[\[\]"\\]/g, '');
           const finalTagNames = cleanedTagNames.split(',');
-          console.log(finalTagNames);
           const tags: Tag[] = await Promise.all(
             finalTagNames.map(async (tagName) => {
               const lowerCaseTagName = tagName.toLowerCase();
@@ -262,7 +195,7 @@ export class PostService {
       await this.mediaRepository.delete({ post: post });
       await this.postRepository.update(post.id, { media: null });
     }
-    if (updatePostDto.tagNames) {      
+    if (updatePostDto.tagNames) {
       if (Array.isArray(updatePostDto.tagNames)) {
         const tags: Tag[] = await Promise.all(
           updatePostDto.tagNames.map(async (tagName) => {
@@ -324,4 +257,102 @@ export class PostService {
     }
     await this.postRepository.delete(id);
   }
+  async findAll(filterquery: FilterPostDto) {
+    const page = filterquery.page || 1;
+    const items_per_page = filterquery.items_per_page || 10;
+    const search = filterquery.search || '';
+    const skip = items_per_page * (page - 1);
+    const [res, total] = await this.postRepository.findAndCount({
+      order: { updated_at: 'DESC' },
+      relations: ['user', 'comments', 'media', 'tags'],
+      where: {
+        title: Like(`%${search}%`),
+        user: {
+          first_name: Like(`%${search}%`),
+          last_name: Like(`%${search}%`),
+        },
+      },
+      take: items_per_page,
+      skip: skip,
+      select: {
+        user: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          email: true,
+          avatar: true,
+        },
+        comments: true,
+        tags: {
+          name: true,
+        },
+      },
+    });
+    const totalPage = Math.ceil(total / items_per_page);
+    const nextPage = Number(page) + 1 <= totalPage ? Number(page) + 1 : null;
+    const prePage = Number(page) - 1 > 0 ? Number(page) - 1 : null;
+
+    return {
+      data: res,
+      total,
+      currentPage: page,
+      items_per_page,
+      totalPage,
+      nextPage,
+      prePage,
+    };
+  }
+
+  async findOne(id: string): Promise<Post> {
+    return await this.postRepository.findOne({
+      where: { id },
+      relations: ['user', 'comments', 'media', 'tags'],
+      select: {
+        user: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          email: true,
+          avatar: true,
+        },
+        comments: true,
+        tags: {
+          name: true,
+        },
+      },
+    });
+  }
+
+  async togglePostLike(postId: string, userId: string): Promise<string> {
+    const post = await this.postRepository.findOneBy({ id: postId });
+  
+    if (!post) {
+      throw new HttpException('Post not found', HttpStatus.NOT_FOUND);
+    }
+  
+    const userLiked = post.likes.some((user) => user.id === userId);
+
+    const like = !userLiked;
+  
+    if (like && !userLiked) {
+      post.likes.push({ id: userId } as any);
+      post.totalLikes = post.likes.length;
+      await this.postRepository.save(post);
+      return 'Post liked successfully';
+    } else if (!like && userLiked) {
+      const initialLikesCount = post.likes.length;
+      post.likes = post.likes.filter((user) => user.id !== userId);
+      post.totalLikes = post.likes.length;
+  
+      if (initialLikesCount === post.likes.length) {
+        return 'User did not like the post';
+      }
+  
+      await this.postRepository.save(post);
+      return 'Post disliked successfully';
+    }
+  
+    return like ? 'User already liked the post' : 'User did not like the post';
+  }
+  
 }

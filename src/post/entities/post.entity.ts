@@ -38,6 +38,17 @@ export class Post {
   @JoinColumn({ name: 'media_id' })
   media: Media;
 
+  @ManyToMany(() => User, { eager: true })
+  @JoinTable({
+    name: 'post_likes',
+    joinColumn: { name: 'post_id' },
+    inverseJoinColumn: { name: 'user_id' },
+  })
+  likes: User[];
+
+  @Column({ default: 0 })
+  totalLikes: number;
+
   @OneToMany(() => Comment, (comment) => comment.post)
   comments: Comment[];
 

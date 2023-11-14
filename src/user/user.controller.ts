@@ -12,6 +12,8 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './entities/user.entity';
@@ -31,12 +33,19 @@ export class UserController {
 
   @UseGuards(AuthGuard)
   @Get()
-  getAllUser(@Query() filterquery: FilterUserDto) {
+  getAllUser(@Req() req: any,@Query() filterquery: FilterUserDto) {
+    if(req.user_data.userType != 'admin'){
+      return new HttpException(
+        'You are not allowed to access this resource',
+        HttpStatus.FORBIDDEN,
+      );
+    }
     return this.userService.getAllUser(filterquery);
   }
   @UseGuards(AuthGuard)
   @Get('my-profile')
   getMyProfile(@Req() req: any) {
+    
     return this.userService.getUserById(req.user_data.id);
   }
 
@@ -81,7 +90,14 @@ export class UserController {
 
   @UseGuards(AuthGuard)
   @Post()
-  create(@Body() createUserDto: CreateUserDto) {
+  create(@Req() req:any, @Body() createUserDto: CreateUserDto) {
+    console.log(req.user_data);
+    if(req.user_data.userType != 'admin'){
+      return new HttpException(
+        'You are not allowed to access this resource',
+        HttpStatus.FORBIDDEN,
+      );
+    }
     return this.userService.create(createUserDto);
   }
 

@@ -47,7 +47,7 @@ export class AuthService {
     if (!isPasswordMatching) {
       throw new HttpException('Wrong password', HttpStatus.UNAUTHORIZED);
     }
-    return this.generateJwtToken({ id: user.id, email: user.email });
+    return this.generateJwtToken({ id: user.id, email: user.email, userType: user.userType });
   }
   private async hashPassword(password: string): Promise<string> {
     const saltRounds = 10;
@@ -59,6 +59,7 @@ export class AuthService {
   private async generateJwtToken(payload: {
     id: string;
     email: string;
+    userType: string;
   }): Promise<{ access_token: string; refresh_token: string }> {
     const access_token = await this.jwtService.signAsync(payload);
     const refresh_token = await this.jwtService.signAsync(payload, {
@@ -82,7 +83,7 @@ export class AuthService {
         refresh_token: refresh_token,
       });
       if (user)
-        return this.generateJwtToken({ id: user.id, email: user.email });
+        return this.generateJwtToken({ id: user.id, email: user.email, userType: user.userType });
       else
         throw new HttpException(
           'Refresh token is not valid!',
