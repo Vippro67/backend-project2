@@ -14,13 +14,13 @@ import { Group } from 'src/group/entities/group.entity';
 
 @Entity()
 export class Message {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn()
   id: string;
 
   @Column()
   content: string;
 
-  @ManyToOne(() => User, {nullable:false , onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'sender_id' })
   sender: User;
 
@@ -32,7 +32,11 @@ export class Message {
   @JoinColumn({ name: 'group_id' })
   group: Group;
 
-  @OneToOne(() => Media, (media) => media.message, { cascade: true, onDelete: 'SET NULL', onUpdate: 'SET NULL' })
+  @OneToOne(() => Media, (media) => media.message, {
+    cascade: true,
+    onDelete: 'SET NULL',
+    onUpdate: 'SET NULL',
+  })
   @JoinColumn({ name: 'media_id' })
   media: Media;
 

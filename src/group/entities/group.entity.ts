@@ -4,13 +4,15 @@ import {
   PrimaryGeneratedColumn,
   JoinTable,
   ManyToMany,
+  OneToMany,
 } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
+import { Post } from 'src/post/entities/post.entity';
 
 @Entity()
 export class Group {
-  @PrimaryGeneratedColumn('uuid')
-   id: string;
+  @PrimaryGeneratedColumn()
+  id: string;
 
   @Column()
   name: string;
@@ -26,4 +28,6 @@ export class Group {
   })
   users: User[];
 
+  @OneToMany(() => Post, (post) => post.group)
+  posts: Post[];
 }

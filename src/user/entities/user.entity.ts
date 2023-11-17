@@ -13,9 +13,14 @@ import { Group } from 'src/group/entities/group.entity';
 import { Tag } from 'src/tag/entities/tag.entity';
 import { Relationship } from 'src/relationship/entities/relationship.entity';
 
+enum ROLE {
+  REGULAR = 'regular',
+  ADMIN = 'admin',
+}
+
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn()
   id: string;
 
   @Column()
@@ -67,12 +72,6 @@ export class User {
   })
   likedPosts: Post[];
 
-  @ManyToMany(() => Relationship, (relationship) => relationship.user)
-  friends: Relationship[];
-
-  @ManyToMany(() => Relationship, (relationship) => relationship.friend)
-  friendOf: Relationship[];
-
   @ManyToMany(() => Tag)
   @JoinTable({
     name: 'user_history_tags',
@@ -81,8 +80,14 @@ export class User {
   })
   historyTags: Tag[];
 
-  @Column({ default: 'regular' }) // regular, admin
-  userType: string;
+  @OneToMany(() => Relationship, (relationship) => relationship.user)
+  relationships: Relationship[];
+
+  @OneToMany(() => Relationship, (relationship) => relationship.friend)
+  friendships: Relationship[];
+
+  @Column({ type: 'enum', enum: ROLE, default: ROLE.REGULAR }) // regular, admin
+  userType: ROLE;
 
   @CreateDateColumn()
   created_at: Date;

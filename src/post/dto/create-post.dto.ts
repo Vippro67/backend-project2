@@ -16,4 +16,7 @@ export class CreatePostDto {
 
   @ApiProperty()
   tagNames: string[];
+
+  @ApiProperty()
+  group_id: string;
 }

@@ -1,6 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty } from 'class-validator';
 
+enum ROLE {
+  REGULAR = 'regular',
+  ADMIN = 'admin',
+}
+
 export class CreateUserDto {
   @ApiProperty()
   @IsNotEmpty()
@@ -18,7 +23,7 @@ export class CreateUserDto {
   lastName: string;
 
   @ApiProperty()
-  userType: string 
+  userType: ROLE; 
 
   @ApiProperty()
   status: number;

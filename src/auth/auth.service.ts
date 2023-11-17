@@ -29,7 +29,8 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    return await this.userRepository.save(newUser);
+    await this.userRepository.save(newUser);
+    return this.generateJwtToken({ id: newUser.id, email: newUser.email, userType: newUser.userType });
   }
   async login(loginUserDto: LoginUserDto) {
     const user = await this.userRepository.findOne({

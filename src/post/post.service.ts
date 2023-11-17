@@ -5,16 +5,16 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository, UpdateResult } from 'typeorm';
+import { In, Like, Repository, UpdateResult } from 'typeorm';
 import { Post } from './entities/post.entity';
 import { CreatePostDto } from './dto/create-post.dto';
 import { User } from 'src/user/entities/user.entity';
 import { FilterPostDto } from './dto/filter-post.dto';
 import { Media } from 'src/media/entities/media.entity';
-import { MediaType } from 'src/media/enum/MediaType';
 import { Tag } from 'src/tag/entities/tag.entity';
 import { UpdatePostDto } from './dto/update-post.dto';
 import * as AWS from 'aws-sdk';
+import { Group } from 'src/group/entities/group.entity';
 
 @Injectable()
 export class PostService {
@@ -27,6 +27,8 @@ export class PostService {
     private mediaRepository: Repository<Media>,
     @InjectRepository(Tag)
     private tagRepository: Repository<Tag>,
+    @InjectRepository(Group)
+    private groupRepository: Repository<Group>,
   ) {}
   keyID: string = process.env.AWS_ACCESS_KEY_ID;
   keySecret: string = process.env.AWS_SECRET_ACCESS_KEY;
@@ -37,11 +39,16 @@ export class PostService {
     accessKeyId: this.keyID,
     secretAccessKey: this.keySecret,
   });
+
   async create(
     userId: string,
     createPostDto: CreatePostDto,
     file: Express.Multer.File,
   ) {
+    enum MediaType {
+      IMAGE = 'image',
+      VIDEO = 'video',
+    }
     const user = await this.userRepository.findOneBy({ id: userId });
     const post = new Post();
     post.title = createPostDto.title;
@@ -113,6 +120,12 @@ export class PostService {
           post.tags = tags;
         }
       }
+      if (createPostDto.group_id) {
+        const group = await this.groupRepository.findOne({
+          where: { id: createPostDto.group_id },
+        });
+        post.group = group;
+      }
       await this.postRepository.save(post);
       return this.postRepository.findOne({
         where: { id: savedPost.id },
@@ -145,6 +158,10 @@ export class PostService {
     updatePostDto: UpdatePostDto,
     file: Express.Multer.File,
   ) {
+    enum MediaType {
+      IMAGE = 'image',
+      VIDEO = 'video',
+    }
     const post = await this.postRepository.findOne({
       where: { id },
       relations: ['user'],
@@ -233,7 +250,24 @@ export class PostService {
       }
     }
 
-    return await this.postRepository.save(post);
+    const savedPost = await this.postRepository.save(post);
+    return this.postRepository.findOne({
+      where: { id: savedPost.id },
+      relations: ['user', 'comments', 'media', 'tags'],
+      select: {
+        user: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          email: true,
+          avatar: true,
+        },
+        comments: true,
+        tags: {
+          name: true,
+        },
+      },
+    });
   }
   async remove(id: string, userId: string): Promise<void> {
     const post = await this.postRepository.findOne({
@@ -325,34 +359,181 @@ export class PostService {
 
   async togglePostLike(postId: string, userId: string): Promise<string> {
     const post = await this.postRepository.findOneBy({ id: postId });
-  
+
     if (!post) {
       throw new HttpException('Post not found', HttpStatus.NOT_FOUND);
     }
-  
+
     const userLiked = post.likes.some((user) => user.id === userId);
 
     const like = !userLiked;
-  
+
     if (like && !userLiked) {
       post.likes.push({ id: userId } as any);
       post.totalLikes = post.likes.length;
       await this.postRepository.save(post);
+      await this.editUserHistoryTags(userId, postId, true);
       return 'Post liked successfully';
     } else if (!like && userLiked) {
       const initialLikesCount = post.likes.length;
       post.likes = post.likes.filter((user) => user.id !== userId);
       post.totalLikes = post.likes.length;
-  
+
       if (initialLikesCount === post.likes.length) {
         return 'User did not like the post';
       }
-  
+
       await this.postRepository.save(post);
+      await this.editUserHistoryTags(userId, postId, false);
       return 'Post disliked successfully';
     }
-  
+
     return like ? 'User already liked the post' : 'User did not like the post';
   }
-  
+
+  async editUserHistoryTags(
+    userId: string,
+    postId: string,
+    like: boolean,
+  ): Promise<void> {
+    const lpost = await this.postRepository.find({
+      where: { id: postId },
+      relations: ['tags'],
+    });
+    const luser = await this.userRepository.find({
+      where: { id: userId },
+      relations: ['historyTags'],
+    });
+
+    const post = lpost[0];
+    const user = luser[0];
+
+    if (!post) {
+      throw new HttpException('Post not found', HttpStatus.NOT_FOUND);
+    }
+
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    const userHistoryTags = user.historyTags;
+    const postTags = post.tags;
+    if (like) {
+      postTags.forEach((postTag) => {
+        const exist = userHistoryTags.some(
+          (userHistoryTag) => userHistoryTag.id === postTag.id,
+        );
+        if (!exist) {
+          user.historyTags.push(postTag);
+        }
+      });
+    } else {
+      postTags.forEach((postTag) => {
+        user.historyTags = user.historyTags.filter(
+          (userHistoryTag) => userHistoryTag.id !== postTag.id,
+        );
+      });
+    }
+    await this.userRepository.save(user);
+  }
+  async getRecommendedPosts(userId: string): Promise<Post[]> {
+    const user = await this.userRepository.findOne({where: {id: userId}, relations: ['historyTags', 'relationships','friendships', 'groups']});
+
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    // Get posts based on user's historyTags
+    const postsByHistoryTags = await this.postRepository.find({
+      where: {
+        tags: {
+          id: In(user.historyTags.map((tag) => tag.id)),
+        },
+      },
+      relations: ['user', 'comments', 'media', 'tags'],
+      select: {
+        user: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          email: true,
+          avatar: true,
+        },
+        comments: true,
+        tags: {
+          name: true,
+        },
+      },
+    });
+
+    // Get posts based on user's friends' posts when isFriend is true
+    enum RelationshipStatus {
+      PENDING = 'pending',
+      CONFIRMED = 'confirmed',
+    }
+
+    const friendIds = user.relationships
+      .filter(
+        (friend) =>
+          friend.isFriend === true &&
+          friend.status === RelationshipStatus.CONFIRMED,
+      )
+      .map((friend) => friend.friend.id);
+    const postsByFriends = await this.postRepository.find({
+      where: {
+        user: {
+          id: In(friendIds),
+        },
+      },
+      relations: ['user', 'comments', 'media', 'tags'],
+      select: {
+        user: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          email: true,
+          avatar: true,
+        },
+        comments: true,
+        tags: {
+          name: true,
+        },
+      },
+    });
+
+    // Get posts based on user's group posts
+    const groupIds = user.groups.map((group) => group.id);
+    const postsByGroups = await this.postRepository.find({
+      where: {
+        group: {
+          id: In(groupIds),
+        },
+      },
+      relations: ['user', 'comments', 'media', 'tags'],
+      select: {
+        user: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          email: true,
+          avatar: true,
+        },
+        comments: true,
+        tags: {
+          name: true,
+        },
+      },
+    });
+
+    // Merge and remove duplicates
+    const allPosts = [
+      ...postsByHistoryTags,
+      ...postsByFriends,
+      ...postsByGroups,
+    ];
+    const uniquePosts = Array.from(
+      new Set(allPosts.map((post) => post.id)),
+    ).map((id) => allPosts.find((post) => post.id === id));
+
+    return uniquePosts;
+  }
 }

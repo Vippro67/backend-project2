@@ -3,7 +3,6 @@ import { Message } from './entities/message.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Media } from 'src/media/entities/media.entity';
-import { MediaType } from 'src/media/enum/MediaType';
 import { User } from 'src/user/entities/user.entity';
 import { Group } from 'src/group/entities/group.entity';
 import { CreateCommnetDto } from 'src/comment/dto/create-comment.dto';
@@ -236,6 +235,10 @@ export class MessageService {
     createMessageDto: CreateMessageDto,
     file: Express.Multer.File,
   ): Promise<Message> {
+    enum MediaType {
+      IMAGE = 'image',
+      VIDEO = 'video',
+    }
     const user = await this.userRepository.findOne({
       where: { id: user_id },
     });

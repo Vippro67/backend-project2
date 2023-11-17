@@ -84,14 +84,12 @@ export class UserController {
   @UseGuards(AuthGuard)
   @Get(':id')
   getUserById(@Param('id') id: string): Promise<User> {
-    console.log(id);
     return this.userService.getUserById(id);
   }
 
   @UseGuards(AuthGuard)
   @Post()
   create(@Req() req:any, @Body() createUserDto: CreateUserDto) {
-    console.log(req.user_data);
     if(req.user_data.userType != 'admin'){
       return new HttpException(
         'You are not allowed to access this resource',
@@ -105,6 +103,12 @@ export class UserController {
   @Put(':id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(id, updateUserDto);
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('delete-history-tags/')
+  deleteHistoryTags(@Req() req:any) {
+    return this.userService.deleteHistoryTags(req.user_data.id);
   }
 
   @UseGuards(AuthGuard)

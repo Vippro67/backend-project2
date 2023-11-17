@@ -11,7 +11,7 @@ import {
 
 @Entity()
 export class Tag {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn()
   id: string;
 
   @Column({ nullable: false })

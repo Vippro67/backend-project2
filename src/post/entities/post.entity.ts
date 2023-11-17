@@ -15,14 +15,15 @@ import {
   OneToOne,
 } from 'typeorm';
 import { Tag } from 'src/tag/entities/tag.entity';
+import { Group } from 'src/group/entities/group.entity';
 
 @Entity()
 export class Post {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn()
   id: string;
 
   @ManyToOne(() => User, (user) => user.posts, {
-    nullable:false ,
+    nullable: false,
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'user_id' })
@@ -34,7 +35,11 @@ export class Post {
   @Column()
   description: string;
 
-  @OneToOne(() => Media, (media) => media.post, { cascade: true, onDelete: 'SET NULL', onUpdate: 'SET NULL' })
+  @OneToOne(() => Media, (media) => media.post, {
+    cascade: true,
+    onDelete: 'SET NULL',
+    onUpdate: 'SET NULL',
+  })
   @JoinColumn({ name: 'media_id' })
   media: Media;
 
@@ -59,6 +64,13 @@ export class Post {
     inverseJoinColumn: { name: 'tag_id' },
   })
   tags: Tag[];
+
+  @ManyToOne(() => Group, (group) => group.posts, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'group_id' })
+  group: Group;
 
   @CreateDateColumn()
   created_at: Date;

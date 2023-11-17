@@ -128,19 +128,24 @@ export class PostController {
   remove(@Req() req: any, @Param('id') id: string): Promise<void> {
     return this.postService.remove(id, req.user_data.id);
   }
+
   @Get()
   getAllPost(@Query() filterquery: FilterPostDto) {
     return this.postService.findAll(filterquery);
   }
 
-  @Get(':id')
+  @UseGuards(AuthGuard)
+  @Get('recommended')
+  getRecommendedPosts(@Req() req: any): Promise<PostEntity[]> {
+    return this.postService.getRecommendedPosts(req.user_data.id);
+  }
+@Get(':id')
   getPostById(@Param('id') id: string): Promise<PostEntity> {
     return this.postService.findOne(id);
   }
-
   @UseGuards(AuthGuard)
   @Post(':id/like')
-  async togglePostLike (@Req() req: any, @Param('id') id: string) : Promise<any> {
+  async togglePostLike(@Req() req: any, @Param('id') id: string): Promise<any> {
     await this.postService.togglePostLike(id, req.user_data.id);
   }
 }

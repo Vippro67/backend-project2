@@ -1,4 +1,9 @@
-import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
 import { DeleteResult, Like, Repository, UpdateResult } from 'typeorm';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -65,7 +70,19 @@ export class UserService {
     };
   }
   async getUserById(id: string): Promise<User> {
-    return await this.userRepository.findOneBy({ id });
+    return await this.userRepository.findOne({
+      where: { id },
+      select: {
+        id: true,
+        first_name: true,
+        last_name: true,
+        email: true,
+        avatar: true,
+        status: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
   }
 
   async create(createUserDto: CreateUserDto) {
@@ -77,13 +94,27 @@ export class UserService {
     if (userExists) {
       throw new HttpException('User already exists', HttpStatus.BAD_REQUEST);
     }
+
     const hashedPassword = await this.hashPassword(createUserDto.password);
     const newUser = await this.userRepository.create({
       ...createUserDto,
       password: hashedPassword,
     });
 
-    return await this.userRepository.save(newUser);
+    await this.userRepository.save(newUser);
+    return this.userRepository.findOne({
+      where: { id: newUser.id },
+      select: {
+        id: true,
+        first_name: true,
+        last_name: true,
+        email: true,
+        avatar: true,
+        status: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
   }
 
   async update(
@@ -92,7 +123,17 @@ export class UserService {
   ): Promise<UpdateResult> {
     return await this.userRepository.update(id, updateUserDto);
   }
-
+  deleteHistoryTags(userId: string) {
+    const user = this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['historyTags'],
+    });
+    user.then((res) => {
+      res.historyTags = [];
+      this.userRepository.save(res);
+    });
+    return new HttpException('Delete history tags successfully', HttpStatus.OK);
+  }
   async remove(id: string): Promise<DeleteResult> {
     return await this.userRepository.delete(id);
   }
@@ -106,7 +147,7 @@ export class UserService {
       Key: `avatar/${Date.now()}_${file.originalname}`,
       Body: file.buffer,
       ContentType: file.mimetype,
-      ACL: 'public-read', 
+      ACL: 'public-read',
     };
     try {
       const result = await this.s3.upload(params).promise();

@@ -9,7 +9,6 @@ import { Like, Repository } from 'typeorm';
 import { Comment } from './entities/comment.entity';
 import { FilterCommentDto } from './dto/filter-comment.dto';
 import { Media } from 'src/media/entities/media.entity';
-import { MediaType } from 'src/media/enum/MediaType';
 import { Post } from 'src/post/entities/post.entity';
 import { User } from 'src/user/entities/user.entity';
 import { CreateCommnetDto } from './dto/create-comment.dto';
@@ -197,6 +196,10 @@ export class CommentService {
     createCommentDto: CreateCommnetDto,
     file: Express.Multer.File,
   ) {
+    enum MediaType {
+      IMAGE = 'image',
+      VIDEO = 'video',
+    }
     const cmt = new Comment();
     cmt.comment = createCommentDto.comment;
     cmt.user = await this.userRepository.findOne({ where: { id: user_id } });
@@ -279,6 +282,10 @@ export class CommentService {
     commentData: Partial<Comment>,
     file: Express.Multer.File,
   ): Promise<Comment> {
+    enum MediaType {
+      IMAGE = 'image',
+      VIDEO = 'video',
+    }
     const comment = await this.commentRepository.findOne({
       where: { id },
       relations: ['user'],

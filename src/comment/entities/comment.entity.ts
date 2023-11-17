@@ -15,7 +15,7 @@ import {
 
 @Entity()
 export class Comment {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn()
   id: string;
 
   @ManyToOne(() => Post, (post) => post.comments, {

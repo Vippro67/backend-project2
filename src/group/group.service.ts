@@ -84,10 +84,24 @@ export class GroupService {
   }
 
   async create(user_id: string, createGroupDto: CreateGrouptDto) {
-    const user: DeepPartial<User> = { id: user_id };
-    return await this.groupRepository.save({
+    const user = await this.userRepository.findOne({ where: { id: user_id } });
+    const savedGroup = await this.groupRepository.save({
       name: createGroupDto.name,
       users: [user],
+    });
+    return this.groupRepository.find({
+      where: { id: savedGroup.id },
+      relations: ['users'],
+      select: {
+        id: true,
+        name: true,
+        users: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+      },
     });
   }
 
@@ -186,6 +200,16 @@ export class GroupService {
       return this.groupRepository.findOne({
         where: { id },
         relations: ['users'],
+        select: {
+          id: true,
+          name: true,
+          users: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            avatar: true,
+          },
+        },
       });
     } catch (error) {
       throw new HttpException('Can not join group', HttpStatus.BAD_REQUEST);
@@ -225,6 +249,16 @@ export class GroupService {
       return this.groupRepository.findOne({
         where: { id },
         relations: ['users'],
+        select: {
+          id: true,
+          name: true,
+          users: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            avatar: true,
+          },
+        },
       });
     } catch (error) {
       throw new HttpException('Can not leave group', HttpStatus.BAD_REQUEST);

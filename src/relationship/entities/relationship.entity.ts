@@ -15,18 +15,13 @@ enum RelationshipStatus {
 
 @Entity()
 export class Relationship {
-  @PrimaryColumn('uuid')
-  user_id: string;
+  @PrimaryGeneratedColumn()
+  id: string;
 
-  @PrimaryColumn('uuid')
-  friend_id: string;
-
-  @ManyToOne(() => User, (user) => user.friends)
-  @JoinColumn({ name: 'user_id' })
+  @ManyToOne(() => User, (user) => user.relationships)
   user: User;
 
-  @ManyToOne(() => User, (user) => user.friendOf)
-  @JoinColumn({ name: 'friend_id' })
+  @ManyToOne(() => User, (user) => user.friendships)
   friend: User;
 
   @Column({ default: false })

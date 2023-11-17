@@ -9,11 +9,13 @@ import {
 import { Post } from '../../post/entities/post.entity';
 import { Comment } from 'src/comment/entities/comment.entity';
 import { Message } from 'src/message/entities/message.entity';
-import { MediaType } from '../enum/MediaType';
-
+enum MediaType {
+  IMAGE = 'image',
+  VIDEO = 'video',
+}
 @Entity()
 export class Media {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn()
   id: string;
 
   @OneToOne(() => Post, (post) => post.media, { onDelete: 'CASCADE' })
