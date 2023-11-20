@@ -83,38 +83,16 @@ export class GroupService {
     });
   }
 
-  async create(user_id: string, createGroupDto: CreateGrouptDto) {
+  async create(
+    user_id: string,
+    createGroupDto: CreateGrouptDto,
+    file: Express.Multer.File,
+  ) {
     const user = await this.userRepository.findOne({ where: { id: user_id } });
-    const savedGroup = await this.groupRepository.save({
+    const group = await this.groupRepository.save({
       name: createGroupDto.name,
       users: [user],
     });
-    return this.groupRepository.find({
-      where: { id: savedGroup.id },
-      relations: ['users'],
-      select: {
-        id: true,
-        name: true,
-        users: {
-          id: true,
-          first_name: true,
-          last_name: true,
-          avatar: true,
-        },
-      },
-    });
-  }
-
-  async updateAvatar(user_id: string, id: string, file: Express.Multer.File) {
-    const group = await this.groupRepository.findOne({
-      where: { id, users: { id: user_id } },
-      relations: ['users'],
-    });
-
-    if (!group) {
-      throw new Error('Group not found or user is not part of the group');
-    }
-
     const params = {
       Bucket: this.bucketName,
       Key: `group-avatar/${Date.now()}_${file.originalname}`,
@@ -129,27 +107,31 @@ export class GroupService {
       await this.userRepository.save(group.users);
 
       await this.groupRepository.save(group);
-      return this.groupRepository.findOne({
-        where: { id },
-        relations: ['users'],
-        select: {
-          id: true,
-          name: true,
-          users: {
-            id: true,
-            first_name: true,
-            last_name: true,
-            avatar: true,
-          },
-          avatar: true,
-        },
-      });
     } catch (error) {
       throw new BadRequestException('Failed to upload avatar' + error);
     }
+    return this.groupRepository.find({
+      where: { id: group.id },
+      relations: ['users'],
+      select: {
+        id: true,
+        name: true,
+        users: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+      },
+    });
   }
 
-  async update(user_id: string, id: string, updateGroupDto: UpdateGrouptDto) {
+  async update(
+    user_id: string,
+    id: string,
+    updateGroupDto: UpdateGrouptDto,
+    file: Express.Multer.File,
+  ) {
     const group = await this.groupRepository.findOne({
       where: { id, users: { id: user_id } },
       relations: ['users'],
@@ -157,6 +139,23 @@ export class GroupService {
 
     if (!group) {
       throw new Error('Group not found or user is not part of the group');
+    }
+    const params = {
+      Bucket: this.bucketName,
+      Key: `group-avatar/${Date.now()}_${file.originalname}`,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+      ACL: 'public-read',
+    };
+
+    try {
+      const result = await this.s3.upload(params).promise();
+      group.avatar = result.Location;
+      await this.userRepository.save(group.users);
+
+      await this.groupRepository.save(group);
+    } catch (error) {
+      throw new BadRequestException('Failed to upload avatar' + error);
     }
     return this.groupRepository.update(
       { id, users: { id: user_id } },

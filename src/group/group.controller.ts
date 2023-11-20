@@ -44,11 +44,45 @@ export class GroupController {
   @UseGuards(AuthGuard)
   @Post()
   @Post('create-group')
-  create(@Req() req: any, @Body() createGroupDto: CreateGrouptDto) {
-    return this.groupService.create(req.user_data.id, createGroupDto);
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      fileFilter: (req, file, cb) => {
+        const ext = extname(file.originalname);
+        const allowedExtArr = ['.jpg', '.png', '.jpeg'];
+        if (!allowedExtArr.includes(ext)) {
+          req.fileValidationError = `Wrong extension type. Accepted file ext are: ${allowedExtArr.toString()}`;
+          cb(null, false);
+        } else {
+          const fileSize = parseInt(req.headers['content-length']);
+          if (fileSize > 1024 * 1024 * 5) {
+            req.fileValidationError =
+              'File size is too large. Accepted file size is less than 5 MB';
+            cb(null, false);
+          } else {
+            cb(null, true);
+          }
+        }
+      },
+    }),
+  )
+  create(@Req() req: any, @Body() createGroupDto: CreateGrouptDto, @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.groupService.create(req.user_data.id, createGroupDto, file);
   }
 
-  @Post(':id/upload-avatar')
+  @UseGuards(AuthGuard)
+  @Post(':id/join')
+  join(@Req() req: any, @Param('id') id: string) {
+    return this.groupService.join(req.user_data.id, id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':id/leave')
+  leave(@Req() req: any, @Param('id') id: string) {
+    return this.groupService.leave(req.user_data.id, id);
+  }
+
+
   @UseGuards(AuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
@@ -71,45 +105,14 @@ export class GroupController {
       },
     }),
   )
-  uploadAvatar(
-    @Req() req: any,
-    @UploadedFile() file: Express.Multer.File,
-    @Param('id') id: string,
-  ) {
-    if (req.fileValidationError) {
-      throw new BadRequestException(req.fileValidationError);
-    }
-    if (!file) {
-      throw new BadRequestException('File is required');
-    }
-    return this.groupService.updateAvatar(
-      req.user_data.id,
-      id,
-      file,
-    );
-  }
-
-  @UseGuards(AuthGuard)
-  @Post(':id/join')
-  join(@Req() req: any, @Param('id') id: string) {
-    return this.groupService.join(req.user_data.id, id);
-  }
-
-  @UseGuards(AuthGuard)
-  @Post(':id/leave')
-  leave(@Req() req: any, @Param('id') id: string) {
-    return this.groupService.leave(req.user_data.id, id);
-  }
-
-
-  @UseGuards(AuthGuard)
   @Put(':id')
   update(
     @Req() req: any,
     @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
     @Body() updateGroupDto: UpdateGrouptDto,
   ) {
-    return this.groupService.update(req.user_data.id, id, updateGroupDto);
+    return this.groupService.update(req.user_data.id, id, updateGroupDto, file);
   }
 
   @UseGuards(AuthGuard)
