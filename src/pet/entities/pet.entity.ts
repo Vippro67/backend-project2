@@ -37,11 +37,9 @@ export class Pet {
   breed: string;
 
   @Column()
-  age: number;
+  date_of_birth: Date;
 
   @Column()
   description: string;
-
-
 
 }

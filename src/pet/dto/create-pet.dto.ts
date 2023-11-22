@@ -8,8 +8,7 @@ export class CreatePetDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  age: number;
-
+  date_of_birth: Date;
   @ApiProperty()
   @IsNotEmpty()
   sex: string;

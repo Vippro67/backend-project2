@@ -1,11 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { Pet } from './entities/pet.entity';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 import * as AWS from 'aws-sdk';
+import { FilterPetDto } from './dto/filter-pet.dto';
 
 @Injectable()
 export class PetService {
@@ -25,16 +26,51 @@ export class PetService {
     accessKeyId: this.keyID,
     secretAccessKey: this.keySecret,
   });
-  findAll() {
-    return this.petRepository.find();
+  async findAll(filterquery: FilterPetDto) {
+    const page = filterquery.page || 1;
+    const items_per_page = filterquery.items_per_page || 10;
+    const search = filterquery.search || '';
+    const skip = items_per_page * (page - 1);
+    const [res, total] = await this.petRepository.findAndCount({
+      order: { id: 'DESC' },
+      relations: ['user', 'comments', 'media', 'tags'],
+      where: {
+        name: Like(`%${search}%`),
+        breed: Like(`%${search}%`),
+        description: Like(`%${search}%`),
+      },
+      take: items_per_page,
+      skip: skip,
+      select: {
+        owner: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+      },
+    });
+    const totalPage = Math.ceil(total / items_per_page);
+    const nextPage = Number(page) + 1 <= totalPage ? Number(page) + 1 : null;
+    const prePage = Number(page) - 1 > 0 ? Number(page) - 1 : null;
+
+    return {
+      data: res,
+      total,
+      currentPage: page,
+      items_per_page,
+      totalPage,
+      nextPage,
+      prePage,
+    };
   }
 
-  findOne(id: string) {
-    return this.petRepository.findOne({ where: { id } });
+  async findOne(id: string) {
+    return await this.petRepository.findOne({ where: { id } });
   }
 
-  findMyPets(userId: string) {
-    return this.petRepository.find({
+  async findMyPets(userId: string) {
+    return await this.petRepository.find({
       where: {
         owner: {
           id: userId,
@@ -43,8 +79,8 @@ export class PetService {
     });
   }
 
-  remove(id: string) {
-    return this.petRepository.delete({ id });
+  async remove(id: string) {
+    return await this.petRepository.delete({ id });
   }
 
   async create(
@@ -52,14 +88,13 @@ export class PetService {
     createPetDto: CreatePetDto,
     file: Express.Multer.File,
   ) {
-    console.log('createPetDto', createPetDto);
     const user = await this.userRepository.findOne({ where: { id: userId } });
     //save pet
     const pet = new Pet();
     pet.owner = user;
     pet.name = createPetDto.name;
     pet.species = createPetDto.species;
-    pet.age = createPetDto.age;
+    pet.date_of_birth = new Date(createPetDto.date_of_birth);
     pet.breed = createPetDto.breed;
     pet.sex = createPetDto.sex;
     pet.description = createPetDto.description;
@@ -115,7 +150,7 @@ export class PetService {
     }
     pet.name = createPetDto.name;
     pet.species = createPetDto.species;
-    pet.age = createPetDto.age;
+    pet.date_of_birth = new Date(createPetDto.date_of_birth);
     pet.breed = createPetDto.breed;
     pet.sex = createPetDto.sex;
     pet.description = createPetDto.description;
@@ -137,5 +172,26 @@ export class PetService {
     }
     await this.petRepository.save(pet);
     return this.petRepository.findOne({ where: { id: petId } });
+  }
+
+  async pairing(userId: string, petId: string) {
+    const pet = await this.petRepository.findOne({
+      where: {
+        id: petId,
+        owner: {
+          id: userId,
+        },
+      },
+    });
+    if (!pet) {
+      return 'Pet not found';
+    }
+    // find some pet have same information with this pet
+    return await this.petRepository.find({
+      where: {
+        breed: pet.breed,
+        species: pet.species,
+      },
+    });
   }
 }

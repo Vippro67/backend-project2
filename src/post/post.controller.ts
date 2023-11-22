@@ -20,7 +20,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { UpdateResult } from 'typeorm';
 import { FilterPostDto } from './dto/filter-post.dto';
 import { ApiTags } from '@nestjs/swagger';
 
@@ -133,6 +132,7 @@ export class PostController {
   getAllPost(@Query() filterquery: FilterPostDto) {
     return this.postService.findAll(filterquery);
   }
+  
 
   @UseGuards(AuthGuard)
   @Get('recommended')

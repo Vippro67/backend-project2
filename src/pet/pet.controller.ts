@@ -1,22 +1,29 @@
-import { Controller, Get, Post, UseGuards,  Req, Delete, Put, Param, UseInterceptors, UploadedFile, Body} from '@nestjs/common';
+import { Controller, Get, Post, UseGuards,  Req, Delete, Put, Param, UseInterceptors, UploadedFile, Body, Query} from '@nestjs/common';
 import { PetService } from './pet.service';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
+import { FilterPetDto } from './dto/filter-pet.dto';
 @Controller('api/v1/pets')
 export class PetController {
     constructor (private petService: PetService) {};
 
     @Get()
-    findAll() {
-        return this.petService.findAll();
+    findAll(@Query() filterquery: FilterPetDto) {
+        return this.petService.findAll(filterquery);
     }
 
     @Get(":id")
     findOne(@Param('id') id: string) {
         return this.petService.findOne(id);
+    }
+
+    @Get("pairing/:id")
+    @UseGuards(AuthGuard)
+    pairing(@Req() req: any,@Param('id') id: string) {
+        return this.petService.pairing(req.user_data.id,id);
     }
 
     @Get("my-pets")
