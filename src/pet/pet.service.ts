@@ -33,7 +33,6 @@ export class PetService {
     const skip = items_per_page * (page - 1);
     const [res, total] = await this.petRepository.findAndCount({
       order: { id: 'DESC' },
-      relations: ['user', 'comments', 'media', 'tags'],
       where: {
         name: Like(`%${search}%`),
         breed: Like(`%${search}%`),

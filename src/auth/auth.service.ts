@@ -30,7 +30,11 @@ export class AuthService {
     });
 
     await this.userRepository.save(newUser);
-    return this.generateJwtToken({ id: newUser.id, email: newUser.email, userType: newUser.userType });
+    return this.generateJwtToken({
+      id: newUser.id,
+      email: newUser.email,
+      userType: newUser.userType,
+    });
   }
   async login(loginUserDto: LoginUserDto) {
     const user = await this.userRepository.findOne({
@@ -48,7 +52,11 @@ export class AuthService {
     if (!isPasswordMatching) {
       throw new HttpException('Wrong password', HttpStatus.UNAUTHORIZED);
     }
-    return this.generateJwtToken({ id: user.id, email: user.email, userType: user.userType });
+    return this.generateJwtToken({
+      id: user.id,
+      email: user.email,
+      userType: user.userType,
+    });
   }
   private async hashPassword(password: string): Promise<string> {
     const saltRounds = 10;
@@ -84,7 +92,11 @@ export class AuthService {
         refresh_token: refresh_token,
       });
       if (user)
-        return this.generateJwtToken({ id: user.id, email: user.email, userType: user.userType });
+        return this.generateJwtToken({
+          id: user.id,
+          email: user.email,
+          userType: user.userType,
+        });
       else
         throw new HttpException(
           'Refresh token is not valid!',

@@ -33,8 +33,8 @@ export class UserController {
 
   @UseGuards(AuthGuard)
   @Get()
-  getAllUser(@Req() req: any,@Query() filterquery: FilterUserDto) {
-    if(req.user_data.userType != 'admin'){
+  getAllUser(@Req() req: any, @Query() filterquery: FilterUserDto) {
+    if (req.user_data.userType != 'admin') {
       return new HttpException(
         'You are not allowed to access this resource',
         HttpStatus.FORBIDDEN,
@@ -45,7 +45,6 @@ export class UserController {
   @UseGuards(AuthGuard)
   @Get('my-profile')
   getMyProfile(@Req() req: any) {
-    
     return this.userService.getUserById(req.user_data.id);
   }
 
@@ -81,7 +80,7 @@ export class UserController {
     }
     return this.userService.updateAvatar(req.user_data.id, file);
   }
-  @UseGuards(AuthGuard)
+
   @Get(':id')
   getUserById(@Param('id') id: string): Promise<User> {
     return this.userService.getUserById(id);
@@ -89,8 +88,8 @@ export class UserController {
 
   @UseGuards(AuthGuard)
   @Post()
-  create(@Req() req:any, @Body() createUserDto: CreateUserDto) {
-    if(req.user_data.userType != 'admin'){
+  create(@Req() req: any, @Body() createUserDto: CreateUserDto) {
+    if (req.user_data.userType != 'admin') {
       return new HttpException(
         'You are not allowed to access this resource',
         HttpStatus.FORBIDDEN,
@@ -107,7 +106,7 @@ export class UserController {
 
   @UseGuards(AuthGuard)
   @Put('delete-history-tags/')
-  deleteHistoryTags(@Req() req:any) {
+  deleteHistoryTags(@Req() req: any) {
     return this.userService.deleteHistoryTags(req.user_data.id);
   }
 

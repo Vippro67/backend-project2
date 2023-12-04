@@ -88,7 +88,7 @@ export class CommentController {
     @Body() createCommentDto: CreateCommnetDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.commentService.create(req.body.post_id,req.body.user_data, createCommentDto, file);
+    return this.commentService.create(req.body.post_id,req.user_data.id, createCommentDto, file);
   }
 
   @UseGuards(AuthGuard)
@@ -143,7 +143,7 @@ export class CommentController {
 
   @UseGuards(AuthGuard)
   @Delete(':id')
-  remove(@Param('id') id: number): Promise<void> {
+  remove(@Param('id') id: string): Promise<void> {
     return this.commentService.remove(id);
   }
 }

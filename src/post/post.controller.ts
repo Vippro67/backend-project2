@@ -133,6 +133,10 @@ export class PostController {
     return this.postService.findAll(filterquery);
   }
   
+  @Get('user/:id')
+  getPostByUserId(@Param('id') id: string): Promise<PostEntity[]> {
+    return this.postService.getPostByUserId(id);
+  }
 
   @UseGuards(AuthGuard)
   @Get('recommended')

@@ -1,8 +1,9 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Relationship } from './entities/relationship.entity';
 import { User } from 'src/user/entities/user.entity';
+import { Not } from 'typeorm';
 export class RelationshipService {
   constructor(
     @InjectRepository(Relationship)
@@ -33,8 +34,91 @@ export class RelationshipService {
     });
   }
 
+  async getRecommendedRelationships(userId: string): Promise<Relationship[]> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['friends'],
+    });
+    const friends = user.friendships.map((friend) => friend.id);
+    const relationships = await this.relationshipRepository.find({
+      where: {
+        user: { id: Not(In(friends)) },
+        friend: { id: Not(userId) },
+      },
+      select: {
+        user: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        friend: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        isFriend: true,
+        status: true,
+        isFollowing: true,
+        isBlocked: true,
+      },
+    });
+    return relationships;
+  }
+
+  async getRelationshipsByUserId(id: string): Promise<Relationship[]> {
+    return await this.relationshipRepository.find({
+      where: { user: { id } },
+      select: {
+        user: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        friend: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        isFriend: true,
+        status: true,
+        isFollowing: true,
+        isBlocked: true,
+      },
+    });
+  }
+
+  async getMyFriends(userId: string): Promise<Relationship[]> {
+    return await this.relationshipRepository.find({
+      where: [{ user: { id: userId } }, { friend: { id: userId } }],
+      relations: ['friend', 'user'],
+      select: {
+        user: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        friend: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        isFriend: true,
+        status: true,
+        isFollowing: true,
+        isBlocked: true,
+      },
+    });
+  }
+
   async getRelationshipById(id: string): Promise<Relationship> {
     return await this.relationshipRepository.findOne({
+      where: { id },
       select: {
         user: {
           id: true,

@@ -51,11 +51,9 @@ export class Post {
   })
   likes: User[];
 
-  @Column({ default: 0 })
-  totalLikes: number;
-
   @OneToMany(() => Comment, (comment) => comment.post)
   comments: Comment[];
+
 
   @ManyToMany(() => Tag)
   @JoinTable({

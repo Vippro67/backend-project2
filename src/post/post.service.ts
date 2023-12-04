@@ -99,25 +99,6 @@ export class PostService {
             }),
           );
           post.tags = tags;
-        } else {
-          const tagNames: string[] = createPostDto.tagNames;
-          const tagNamesString = JSON.stringify(tagNames);
-          const cleanedTagNames = tagNamesString.replace(/[\[\]"\\]/g, '');
-          const finalTagNames = cleanedTagNames.split(',');
-          const tags: Tag[] = await Promise.all(
-            finalTagNames.map(async (tagName) => {
-              const lowerCaseTagName = tagName.toLowerCase();
-              let tag = await this.tagRepository.findOne({
-                where: { name: lowerCaseTagName },
-              });
-              if (!tag) {
-                tag = this.tagRepository.create({ name: lowerCaseTagName });
-                await this.tagRepository.save(tag);
-              }
-              return tag;
-            }),
-          );
-          post.tags = tags;
         }
       }
       if (createPostDto.group_id) {
@@ -298,7 +279,7 @@ export class PostService {
     const skip = items_per_page * (page - 1);
     const [res, total] = await this.postRepository.findAndCount({
       order: { updated_at: 'DESC' },
-      relations: ['user', 'comments', 'media', 'tags'],
+      relations: ['user', 'media', 'tags', 'comments'],
       where: {
         title: Like(`%${search}%`),
         user: {
@@ -317,9 +298,8 @@ export class PostService {
           avatar: true,
         },
         comments: true,
-        tags: {
-          name: true,
-        },
+        likes: true,
+        tags: true,
       },
     });
     const totalPage = Math.ceil(total / items_per_page);
@@ -337,6 +317,24 @@ export class PostService {
     };
   }
 
+  async getPostByUserId(id: string): Promise<Post[]> {
+    return await this.postRepository.find({
+      where: { user: { id } },
+      relations: ['user', 'comments', 'media', 'tags'],
+      select: {
+        user: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          email: true,
+          avatar: true,
+        },
+        comments: true,
+        tags: true,
+      },
+    });
+  }
+
   async findOne(id: string): Promise<Post> {
     return await this.postRepository.findOne({
       where: { id },
@@ -350,9 +348,7 @@ export class PostService {
           avatar: true,
         },
         comments: true,
-        tags: {
-          name: true,
-        },
+        tags: true,
       },
     });
   }
@@ -370,14 +366,12 @@ export class PostService {
 
     if (like && !userLiked) {
       post.likes.push({ id: userId } as any);
-      post.totalLikes = post.likes.length;
       await this.postRepository.save(post);
       await this.editUserHistoryTags(userId, postId, true);
       return 'Post liked successfully';
     } else if (!like && userLiked) {
       const initialLikesCount = post.likes.length;
       post.likes = post.likes.filter((user) => user.id !== userId);
-      post.totalLikes = post.likes.length;
 
       if (initialLikesCount === post.likes.length) {
         return 'User did not like the post';
@@ -437,7 +431,10 @@ export class PostService {
     await this.userRepository.save(user);
   }
   async getRecommendedPosts(userId: string): Promise<Post[]> {
-    const user = await this.userRepository.findOne({where: {id: userId}, relations: ['historyTags', 'relationships','friendships', 'groups']});
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['historyTags', 'relationships', 'friendships', 'groups'],
+    });
 
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);

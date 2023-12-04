@@ -13,6 +13,24 @@ export class RelationshipController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('recommended')
+  getRecommendedRelationships(@Req() req: any) {
+    return this.relationshipService.getRecommendedRelationships(req.user_data.id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('user/:id')
+  getRelationshipsByUserId(@Param('id') id: string) {
+    return this.relationshipService.getRelationshipsByUserId(id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('my-friends')
+  getMyFriends(@Req() req: any) {
+    return this.relationshipService.getMyFriends(req.user_data.id);
+  }
+
+  @UseGuards(AuthGuard)
   @Get(':id')
   getRelationshipById(@Param('id') id: string) {
     return this.relationshipService.getRelationshipById(id);

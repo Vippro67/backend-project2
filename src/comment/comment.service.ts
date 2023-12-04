@@ -160,7 +160,7 @@ export class CommentService {
       order: { updated_at: 'DESC' },
       relations: ['user', 'post', 'replies', 'repliedComment'],
       where: {
-       id: id,
+        id: id,
       },
       select: {
         user: {
@@ -246,6 +246,10 @@ export class CommentService {
         media: savedMedia,
       });
     }
+    //calculate total comments
+    const totalComments = await this.commentRepository.count({
+      where: { post: post },
+    });
     return this.commentRepository.findOne({
       where: { id: savedComment.id },
       relations: ['user', 'post', 'media', 'repliedComment', 'replies'],
@@ -331,6 +335,7 @@ export class CommentService {
       await this.mediaRepository.delete({ comment: comment });
       await this.commentRepository.update(comment.id, { media: null });
     }
+
     await this.commentRepository.update(comment.id, commentData);
     return this.commentRepository.findOne({
       where: { id: comment.id },
@@ -357,7 +362,7 @@ export class CommentService {
     });
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     await this.commentRepository.delete(id);
   }
 }
