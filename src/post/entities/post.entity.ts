@@ -43,7 +43,7 @@ export class Post {
   @JoinColumn({ name: 'media_id' })
   media: Media;
 
-  @ManyToMany(() => User, { eager: true })
+  @ManyToMany(() => User)
   @JoinTable({
     name: 'post_likes',
     joinColumn: { name: 'post_id' },

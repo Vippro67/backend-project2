@@ -33,13 +33,7 @@ export class UserController {
 
   @UseGuards(AuthGuard)
   @Get()
-  getAllUser(@Req() req: any, @Query() filterquery: FilterUserDto) {
-    if (req.user_data.userType != 'admin') {
-      return new HttpException(
-        'You are not allowed to access this resource',
-        HttpStatus.FORBIDDEN,
-      );
-    }
+  getAllUser(@Query() filterquery: FilterUserDto) {
     return this.userService.getAllUser(filterquery);
   }
   @UseGuards(AuthGuard)

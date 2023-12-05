@@ -14,7 +14,6 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { FilterUserDto } from './dto/filter-user.dto';
 import * as AWS from 'aws-sdk';
 import e from 'express';
-
 @Injectable()
 export class UserService {
   constructor(
@@ -36,12 +35,11 @@ export class UserService {
     const search = filterquery.search || '';
     const skip = items_per_page * (page - 1);
     const [res, total] = await this.userRepository.findAndCount({
-      order: { created_at: 'DESC' },
-      where: {
-        first_name: Like(`%${search}%`),
-        last_name: Like(`%${search}%`),
-        email: Like(`%${search}%`),
-      },
+      where: [
+        { first_name: Like(`%${search}%`) },
+        { last_name: Like(`%${search}%`) },
+        { email: Like(`%${search}%`) },
+      ],
       take: items_per_page,
       skip: skip,
       select: [

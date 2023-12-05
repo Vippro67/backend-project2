@@ -279,7 +279,7 @@ export class PostService {
     const skip = items_per_page * (page - 1);
     const [res, total] = await this.postRepository.findAndCount({
       order: { updated_at: 'DESC' },
-      relations: ['user', 'media', 'tags', 'comments'],
+      relations: ['user', 'media', 'tags', 'comments', 'likes'],
       where: {
         title: Like(`%${search}%`),
         user: {
@@ -298,7 +298,13 @@ export class PostService {
           avatar: true,
         },
         comments: true,
-        likes: true,
+        likes: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+
         tags: true,
       },
     });
@@ -320,7 +326,7 @@ export class PostService {
   async getPostByUserId(id: string): Promise<Post[]> {
     return await this.postRepository.find({
       where: { user: { id } },
-      relations: ['user', 'comments', 'media', 'tags'],
+      relations: ['user', 'comments', 'media', 'tags', 'likes'],
       select: {
         user: {
           id: true,
@@ -330,7 +336,15 @@ export class PostService {
           avatar: true,
         },
         comments: true,
-        tags: true,
+        tags: {
+          name: true,
+        },
+        likes: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
       },
     });
   }
@@ -338,7 +352,7 @@ export class PostService {
   async findOne(id: string): Promise<Post> {
     return await this.postRepository.findOne({
       where: { id },
-      relations: ['user', 'comments', 'media', 'tags'],
+      relations: ['user', 'comments', 'media', 'tags', 'likes'],
       select: {
         user: {
           id: true,
@@ -348,16 +362,29 @@ export class PostService {
           avatar: true,
         },
         comments: true,
-        tags: true,
+        tags: {
+          name: true,
+        },
+        likes: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
       },
     });
   }
 
   async togglePostLike(postId: string, userId: string): Promise<string> {
-    const post = await this.postRepository.findOneBy({ id: postId });
-
+    const post = await this.postRepository.findOne({
+      where: { id: postId },
+      relations: ['likes'],
+    });
     if (!post) {
       throw new HttpException('Post not found', HttpStatus.NOT_FOUND);
+    }
+    if (!post.likes) {
+      post.likes = [];
     }
 
     const userLiked = post.likes.some((user) => user.id === userId);
