@@ -9,9 +9,10 @@ import { UpdateGrouptDto } from './dto/update-group.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Message } from 'src/message/entities/message.entity';
 import { User } from 'src/user/entities/user.entity';
-import { DeepPartial, Repository } from 'typeorm';
+import { DeepPartial, Like, Repository } from 'typeorm';
 import { Group } from './entities/group.entity';
 import * as AWS from 'aws-sdk';
+import { FilterGroupDto } from './dto/filter-group.dto';
 
 @Injectable()
 export class GroupService {
@@ -32,21 +33,43 @@ export class GroupService {
     accessKeyId: this.keyID,
     secretAccessKey: this.keySecret,
   });
-  findAll() {
-    return this.groupRepository.findAndCount({
+  async findAll(filterquery: FilterGroupDto) {
+    const page = filterquery.page || 1;
+    const items_per_page = filterquery.items_per_page || 10;
+    const search = filterquery.search || '';
+    const skip = items_per_page * (page - 1);
+    const [res, total] = await this.groupRepository.findAndCount({
+      order: { id: 'DESC' },
       relations: ['users'],
+      where: [
+        {
+          name: Like(`%${search}%`),
+        },
+      ],
+      take: items_per_page,
+      skip: skip,
       select: {
-        id: true,
-        name: true,
         users: {
           id: true,
           first_name: true,
           last_name: true,
           avatar: true,
         },
-        avatar: true,
       },
     });
+    const totalPage = Math.ceil(total / items_per_page);
+    const nextPage = Number(page) + 1 <= totalPage ? Number(page) + 1 : null;
+    const prePage = Number(page) - 1 > 0 ? Number(page) - 1 : null;
+
+    return {
+      data: res,
+      total,
+      currentPage: page,
+      items_per_page,
+      totalPage,
+      nextPage,
+      prePage,
+    };
   }
 
   findOne(id: string) {

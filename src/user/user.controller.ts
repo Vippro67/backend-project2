@@ -48,8 +48,22 @@ export class UserController {
     FileInterceptor('avatar', {
       fileFilter: (req, file, cb) => {
         const ext = extname(file.originalname);
-        const allowedExtArr = ['.jpg', '.png', '.jpeg'];
-        if (!allowedExtArr.includes(ext)) {
+        const allowedExtArr = [
+          '.jpg',
+          '.png',
+          '.jpeg',
+          '.gif',
+          '.bmp',
+          '.svg',
+          '.webp',
+          '.tiff',
+          '.psd',
+          '.raw',
+          '.heif',
+          '.indd',
+          '.jpeg 2000',
+          '.pdf',
+        ];        if (!allowedExtArr.includes(ext)) {
           req.fileValidationError = `Wrong extension type. Accepted file ext are: ${allowedExtArr.toString()}`;
           cb(null, false);
         } else {

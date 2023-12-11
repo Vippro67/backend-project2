@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -20,6 +21,7 @@ import { CreateGrouptDto } from './dto/create-group.dto';
 import { UpdateGrouptDto } from './dto/update-group.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
+import { FilterGroupDto } from './dto/filter-group.dto';
 
 @ApiTags('Group')
 @Controller('api/v1/groups')
@@ -27,8 +29,8 @@ export class GroupController {
   constructor(private groupService: GroupService) {}
 
   @Get()
-  findAll() {
-    return this.groupService.findAll();
+  findAll( @Query() filterquery: FilterGroupDto) {
+    return this.groupService.findAll(filterquery);
   }
 
   @Get(':id')
@@ -43,12 +45,26 @@ export class GroupController {
 
   @UseGuards(AuthGuard)
   @Post()
-  @Post('create-group')
   @UseInterceptors(
     FileInterceptor('avatar', {
       fileFilter: (req, file, cb) => {
         const ext = extname(file.originalname);
-        const allowedExtArr = ['.jpg', '.png', '.jpeg'];
+        const allowedExtArr = [
+          '.jpg',
+          '.png',
+          '.jpeg',
+          '.gif',
+          '.bmp',
+          '.svg',
+          '.webp',
+          '.tiff',
+          '.psd',
+          '.raw',
+          '.heif',
+          '.indd',
+          '.jpeg 2000',
+          '.pdf',
+        ];
         if (!allowedExtArr.includes(ext)) {
           req.fileValidationError = `Wrong extension type. Accepted file ext are: ${allowedExtArr.toString()}`;
           cb(null, false);
@@ -65,7 +81,10 @@ export class GroupController {
       },
     }),
   )
-  create(@Req() req: any, @Body() createGroupDto: CreateGrouptDto, @UploadedFile() file: Express.Multer.File,
+  create(
+    @Req() req: any,
+    @Body() createGroupDto: CreateGrouptDto,
+    @UploadedFile() file: Express.Multer.File,
   ) {
     return this.groupService.create(req.user_data.id, createGroupDto, file);
   }
@@ -81,7 +100,6 @@ export class GroupController {
   leave(@Req() req: any, @Param('id') id: string) {
     return this.groupService.leave(req.user_data.id, id);
   }
-
 
   @UseGuards(AuthGuard)
   @UseInterceptors(

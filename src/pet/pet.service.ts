@@ -33,11 +33,21 @@ export class PetService {
     const skip = items_per_page * (page - 1);
     const [res, total] = await this.petRepository.findAndCount({
       order: { id: 'DESC' },
-      where: {
-        name: Like(`%${search}%`),
-        breed: Like(`%${search}%`),
-        description: Like(`%${search}%`),
-      },
+      relations: ['owner'],
+      where: [
+        {
+          name: Like(`%${search}%`),
+        },
+        {
+          species: Like(`%${search}%`),
+        },
+        {
+          breed: Like(`%${search}%`),
+        },
+        {
+          description: Like(`%${search}%`),
+        },
+      ],
       take: items_per_page,
       skip: skip,
       select: {
@@ -78,7 +88,19 @@ export class PetService {
     });
   }
 
-  async remove(id: string) {
+  async remove(userId: string, id: string) {
+    const pet = await this.petRepository.findOne({
+      where: {
+        id,
+        owner: {
+          id: userId,
+        },
+      },
+    });
+    if (!pet) {
+      return 'Pet not found or you are not owner of this pet';
+    }
+
     return await this.petRepository.delete({ id });
   }
 
@@ -88,7 +110,6 @@ export class PetService {
     file: Express.Multer.File,
   ) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
-    //save pet
     const pet = new Pet();
     pet.owner = user;
     pet.name = createPetDto.name;

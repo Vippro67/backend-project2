@@ -49,7 +49,22 @@ export class PetController {
     FileInterceptor('avatar', {
       fileFilter: (req, file, cb) => {
         const ext = extname(file.originalname);
-        const allowedExtArr = ['.jpg', '.png', '.jpeg'];
+        const allowedExtArr = [
+          '.jpg',
+          '.png',
+          '.jpeg',
+          '.gif',
+          '.bmp',
+          '.svg',
+          '.webp',
+          '.tiff',
+          '.psd',
+          '.raw',
+          '.heif',
+          '.indd',
+          '.jpeg 2000',
+          '.pdf',
+        ];
         if (!allowedExtArr.includes(ext)) {
           req.fileValidationError = `Wrong extension type. Accepted file ext are: ${allowedExtArr.toString()}`;
           cb(null, false);
@@ -106,9 +121,9 @@ export class PetController {
     return this.petService.update(req.user_data.id, id, updatePetDto, file);
   }
 
-  @Delete()
+  @Delete(":id")
   @UseGuards(AuthGuard)
-  remove(@Req() req: any) {
-    return this.petService.remove(req.user_data.id);
+  remove(@Req() req: any, @Param('id') id: string) {
+    return this.petService.remove(req.user_data.id, id);
   }
 }

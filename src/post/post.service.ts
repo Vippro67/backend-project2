@@ -189,9 +189,6 @@ export class PostService {
       await this.mediaRepository.delete({ post: post });
       const savedMedia = await this.mediaRepository.save(media);
       await this.postRepository.update(post.id, { media: savedMedia });
-    } else {
-      await this.mediaRepository.delete({ post: post });
-      await this.postRepository.update(post.id, { media: null });
     }
     if (updatePostDto.tagNames) {
       if (Array.isArray(updatePostDto.tagNames)) {
@@ -280,13 +277,14 @@ export class PostService {
     const [res, total] = await this.postRepository.findAndCount({
       order: { updated_at: 'DESC' },
       relations: ['user', 'media', 'tags', 'comments', 'likes'],
-      where: {
-        title: Like(`%${search}%`),
-        user: {
-          first_name: Like(`%${search}%`),
-          last_name: Like(`%${search}%`),
+      where: [
+        {
+          title: Like(`%${search}%`),
         },
-      },
+        {
+          description: Like(`%${search}%`),
+        },
+      ],
       take: items_per_page,
       skip: skip,
       select: {
