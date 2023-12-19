@@ -29,10 +29,14 @@ export class GroupController {
   constructor(private groupService: GroupService) {}
 
   @Get()
-  findAll( @Query() filterquery: FilterGroupDto) {
+  findAll(@Query() filterquery: FilterGroupDto) {
     return this.groupService.findAll(filterquery);
   }
-
+  @UseGuards(AuthGuard)
+  @Get('my-groups')
+  getMyGroup(@Req() req: any): Promise<Group[]> {
+    return this.groupService.findAllByUser(req.user_data.id);
+  }
   @Get(':id')
   finfOne(@Param('id') id: string): Promise<Group> {
     return this.groupService.findOne(id);

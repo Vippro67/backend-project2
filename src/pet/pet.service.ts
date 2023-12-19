@@ -80,9 +80,23 @@ export class PetService {
 
   async findMyPets(userId: string) {
     return await this.petRepository.find({
+      relations: ['owner'],
       where: {
+
         owner: {
           id: userId,
+
+        },
+      },
+    });
+  }
+
+  async findPetsByUserId(id: string) {
+    return await this.petRepository.find({
+      relations: ['owner'],
+      where: {
+        owner: {
+          id,
         },
       },
     });

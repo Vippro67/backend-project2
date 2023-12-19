@@ -79,6 +79,7 @@ export class GroupService {
       select: {
         id: true,
         name: true,
+        avatar: true,
         users: {
           id: true,
           first_name: true,
@@ -92,16 +93,10 @@ export class GroupService {
   findAllByUser(user_id: string) {
     return this.groupRepository.find({
       where: { users: { id: user_id } },
-      relations: ['users'],
       select: {
         id: true,
         name: true,
-        users: {
-          id: true,
-          first_name: true,
-          last_name: true,
-          avatar: true,
-        },
+        avatar: true,
       },
     });
   }

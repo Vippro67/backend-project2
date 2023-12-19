@@ -246,10 +246,6 @@ export class CommentService {
         media: savedMedia,
       });
     }
-    //calculate total comments
-    const totalComments = await this.commentRepository.count({
-      where: { post: post },
-    });
     return this.commentRepository.findOne({
       where: { id: savedComment.id },
       relations: ['user', 'post', 'media', 'repliedComment', 'replies'],

@@ -128,11 +128,23 @@ export class PostController {
     return this.postService.remove(id, req.user_data.id);
   }
 
+  @UseGuards(AuthGuard)
+  @Get('user/group')
+  getPostByUserGroup(@Req() req: any): Promise<PostEntity[]> {
+    return this.postService.getPostByUserGroup(req.user_data.id);
+  }
+
   @Get()
   getAllPost(@Query() filterquery: FilterPostDto) {
     return this.postService.findAll(filterquery);
   }
-  
+
+  @UseGuards(AuthGuard)
+  @Get('group/:id')
+  getPostByGroupId(@Param('id') id: string): Promise<PostEntity[]> {
+    return this.postService.getPostByGroupId(id);
+  }
+
   @Get('user/:id')
   getPostByUserId(@Param('id') id: string): Promise<PostEntity[]> {
     return this.postService.getPostByUserId(id);
@@ -140,10 +152,10 @@ export class PostController {
 
   @UseGuards(AuthGuard)
   @Get('recommended')
-  getRecommendedPosts(@Req() req: any): Promise<PostEntity[]> {
+  getRecommendedPosts(@Req() req: any) {
     return this.postService.getRecommendedPosts(req.user_data.id);
   }
-@Get(':id')
+  @Get(':id')
   getPostById(@Param('id') id: string): Promise<PostEntity> {
     return this.postService.findOne(id);
   }

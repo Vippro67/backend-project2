@@ -5,7 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Like, Repository, UpdateResult } from 'typeorm';
+import { In, IsNull, Like, Repository, UpdateResult } from 'typeorm';
 import { Post } from './entities/post.entity';
 import { CreatePostDto } from './dto/create-post.dto';
 import { User } from 'src/user/entities/user.entity';
@@ -15,6 +15,7 @@ import { Tag } from 'src/tag/entities/tag.entity';
 import { UpdatePostDto } from './dto/update-post.dto';
 import * as AWS from 'aws-sdk';
 import { Group } from 'src/group/entities/group.entity';
+import { Relationship } from 'src/relationship/entities/relationship.entity';
 
 @Injectable()
 export class PostService {
@@ -29,6 +30,8 @@ export class PostService {
     private tagRepository: Repository<Tag>,
     @InjectRepository(Group)
     private groupRepository: Repository<Group>,
+    @InjectRepository(Relationship)
+    private relationshipRepository: Repository<Relationship>,
   ) {}
   keyID: string = process.env.AWS_ACCESS_KEY_ID;
   keySecret: string = process.env.AWS_SECRET_ACCESS_KEY;
@@ -274,17 +277,18 @@ export class PostService {
     const items_per_page = filterquery.items_per_page || 10;
     const search = filterquery.search || '';
     const skip = items_per_page * (page - 1);
+
     const [res, total] = await this.postRepository.findAndCount({
-      order: { updated_at: 'DESC' },
-      relations: ['user', 'media', 'tags', 'comments', 'likes'],
+      order: { created_at: 'DESC' },
+      relations: ['user', 'media', 'tags', 'comments', 'likes', 'group'],
       where: [
+        { group: IsNull(), description: Like(`%${search}%`) },
         {
+          group: IsNull(),
           title: Like(`%${search}%`),
         },
-        {
-          description: Like(`%${search}%`),
-        },
       ],
+
       take: items_per_page,
       skip: skip,
       select: {
@@ -302,10 +306,15 @@ export class PostService {
           last_name: true,
           avatar: true,
         },
-
         tags: true,
+        group: {
+          id: true,
+          name: true,
+          avatar: true,
+        },
       },
     });
+
     const totalPage = Math.ceil(total / items_per_page);
     const nextPage = Number(page) + 1 <= totalPage ? Number(page) + 1 : null;
     const prePage = Number(page) - 1 > 0 ? Number(page) - 1 : null;
@@ -324,6 +333,7 @@ export class PostService {
   async getPostByUserId(id: string): Promise<Post[]> {
     return await this.postRepository.find({
       where: { user: { id } },
+      order: { created_at: 'DESC' },
       relations: ['user', 'comments', 'media', 'tags', 'likes'],
       select: {
         user: {
@@ -341,6 +351,78 @@ export class PostService {
           id: true,
           first_name: true,
           last_name: true,
+          avatar: true,
+        },
+      },
+    });
+  }
+
+  async getPostByUserGroup(id: string): Promise<Post[]> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['groups'],
+    });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    const groupIds = user.groups.map((group) => group.id);
+    return await this.postRepository.find({
+      where: { group: { id: In(groupIds) } },
+      order: { created_at: 'DESC' },
+      relations: ['user', 'comments', 'media', 'tags', 'likes', 'group'],
+      select: {
+        user: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          email: true,
+          avatar: true,
+        },
+        comments: true,
+        tags: {
+          name: true,
+        },
+        likes: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        group: {
+          id: true,
+          name: true,
+          avatar: true,
+        },
+      },
+    });
+  }
+
+  async getPostByGroupId(id: string): Promise<Post[]> {
+    return await this.postRepository.find({
+      where: { group: { id } },
+      order: { created_at: 'DESC' },
+      relations: ['user', 'comments', 'media', 'tags', 'likes', 'group'],
+      select: {
+        user: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          email: true,
+          avatar: true,
+        },
+        comments: true,
+        tags: {
+          name: true,
+        },
+        likes: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        group: {
+          id: true,
+          name: true,
           avatar: true,
         },
       },
@@ -455,10 +537,16 @@ export class PostService {
     }
     await this.userRepository.save(user);
   }
-  async getRecommendedPosts(userId: string): Promise<Post[]> {
+  async getRecommendedPosts(userId: string) {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      relations: ['historyTags', 'relationships', 'friendships', 'groups'],
+      relations: [
+        'historyTags',
+        'relationships',
+        'relationships.user',
+        'relationships.friend',
+        'groups',
+      ],
     });
 
     if (!user) {
@@ -469,6 +557,9 @@ export class PostService {
       where: {
         tags: {
           id: In(user.historyTags.map((tag) => tag.id)),
+        },
+        group: {
+          id: In(user.groups.map((group) => group.id)),
         },
       },
       relations: ['user', 'comments', 'media', 'tags'],
@@ -495,16 +586,22 @@ export class PostService {
 
     const friendIds = user.relationships
       .filter(
-        (friend) =>
-          friend.isFriend === true &&
-          friend.status === RelationshipStatus.CONFIRMED,
+        (relationship) => relationship.status === RelationshipStatus.CONFIRMED,
       )
-      .map((friend) => friend.friend.id);
+      .map((relationship) => {
+        if (relationship.user.id === user.id) {
+          return relationship.friend.id;
+        } else {
+          return relationship.user.id;
+        }
+      });
+
     const postsByFriends = await this.postRepository.find({
       where: {
         user: {
           id: In(friendIds),
         },
+        group: IsNull(),
       },
       relations: ['user', 'comments', 'media', 'tags'],
       select: {
@@ -530,7 +627,7 @@ export class PostService {
           id: In(groupIds),
         },
       },
-      relations: ['user', 'comments', 'media', 'tags'],
+      relations: ['user', 'comments', 'media', 'tags', 'group'],
       select: {
         user: {
           id: true,
@@ -543,9 +640,13 @@ export class PostService {
         tags: {
           name: true,
         },
+        group: {
+          id: true,
+          name: true,
+          avatar: true,
+        },
       },
     });
-
     // Merge and remove duplicates
     const allPosts = [
       ...postsByHistoryTags,
@@ -556,6 +657,29 @@ export class PostService {
       new Set(allPosts.map((post) => post.id)),
     ).map((id) => allPosts.find((post) => post.id === id));
 
-    return uniquePosts;
+    // Sort by updated_at
+    interface PostResponse {
+      data: Post[];
+      total: number;
+      currentPage: number;
+      items_per_page: number;
+      totalPage: number;
+      nextPage: null;
+      prePage: null;
+    }
+
+    const sortedPosts = uniquePosts.sort(
+      (a, b) => b.updated_at.getTime() - a.updated_at.getTime(),
+    );
+
+    return {
+      data: sortedPosts,
+      total: sortedPosts.length,
+      currentPage: 1,
+      items_per_page: sortedPosts.length,
+      totalPage: 1,
+      nextPage: null,
+      prePage: null,
+    };
   }
 }

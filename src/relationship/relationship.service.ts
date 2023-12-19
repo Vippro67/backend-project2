@@ -142,6 +142,19 @@ export class RelationshipService {
 
   async addFriend(userId: string, friendId: string) {
     try {
+      //check if friend request already sent
+      const isrelationship = await this.relationshipRepository.findOne({
+        where: {
+          user: { id: userId },
+          friend: { id: friendId },
+        },
+      });
+      if (isrelationship) {
+        throw new HttpException(
+          'Friend request already sent',
+          HttpStatus.FORBIDDEN,
+        );
+      }
       const user = await this.userRepository.findOne({ where: { id: userId } });
       const friend = await this.userRepository.findOne({
         where: { id: friendId },
@@ -177,7 +190,42 @@ export class RelationshipService {
       relationship.isFriend = true;
       relationship.status = RelationshipStatus.CONFIRMED;
       await this.relationshipRepository.save(relationship);
+      // create new relationship for friend
+      const friendRelationship = new Relationship();
+      friendRelationship.user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
+      friendRelationship.friend = await this.userRepository.findOne({
+        where: { id: friendId },
+      });
+      friendRelationship.isFriend = true;
+      friendRelationship.status = RelationshipStatus.CONFIRMED;
+      await this.relationshipRepository.save(friendRelationship);
+
       return new HttpException('Friend request accepted', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async cancelFriend(userId: string, friendId: string) {
+    try {
+      const relationship = await this.relationshipRepository.findOne({
+        where: {
+          user: { id: userId },
+          friend: { id: friendId },
+        },
+      });
+      if (relationship.status === 'pending') {
+        await this.relationshipRepository.delete(relationship.id);
+      } else {
+        throw new HttpException(
+          'You are not allowed to cancel this friend request',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      return new HttpException('Friend request canceled', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -209,6 +257,18 @@ export class RelationshipService {
       });
       relationship.isBlocked = false;
       await this.relationshipRepository.save(relationship);
+
+      // create relationship for friend
+
+      const friendRelationship = await this.relationshipRepository.findOne({
+        where: {
+          user: { id: friendId },
+          friend: { id: userId },
+        },
+      });
+      friendRelationship.isBlocked = false;
+      await this.relationshipRepository.save(friendRelationship);
+
       return new HttpException('Friend unblocked', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -231,6 +291,24 @@ export class RelationshipService {
           HttpStatus.FORBIDDEN,
         );
       }
+
+      // create relationship for friend
+
+      const friendRelationship = await this.relationshipRepository.findOne({
+        where: {
+          user: { id: userId },
+          friend: { id: friendId },
+        },
+      });
+      if (friendRelationship.status === 'pending') {
+        await this.relationshipRepository.save(friendRelationship);
+      } else {
+        throw new HttpException(
+          'You are not allowed to reject this friend request',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
       return new HttpException('Friend request rejected', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -245,14 +323,16 @@ export class RelationshipService {
           friend: { id: friendId },
         },
       });
-      if (relationship.status === 'confirmed') {
-        await this.relationshipRepository.save(relationship);
-      } else {
-        throw new HttpException(
-          'You are not allowed to unfriend this user',
-          HttpStatus.FORBIDDEN,
-        );
-      }
+      await this.relationshipRepository.delete(relationship.id);
+
+      const friendRelationship = await this.relationshipRepository.findOne({
+        where: {
+          user: { id: friendId },
+          friend: { id: userId },
+        },
+      });
+      await this.relationshipRepository.delete(friendRelationship.id);
+
       return new HttpException('Friend unfriended', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);

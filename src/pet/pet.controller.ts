@@ -32,6 +32,13 @@ export class PetController {
   findMyPets(@Req() req: any) {
     return this.petService.findMyPets(req.user_data.id);
   }
+
+  @Get('user/:id')
+  @UseGuards(AuthGuard)
+  findPetsByUserId(@Param('id') id: string) {
+    return this.petService.findPetsByUserId(id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.petService.findOne(id);
@@ -121,7 +128,7 @@ export class PetController {
     return this.petService.update(req.user_data.id, id, updatePetDto, file);
   }
 
-  @Delete(":id")
+  @Delete(':id')
   @UseGuards(AuthGuard)
   remove(@Req() req: any, @Param('id') id: string) {
     return this.petService.remove(req.user_data.id, id);

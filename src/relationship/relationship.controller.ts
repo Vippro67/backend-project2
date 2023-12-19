@@ -1,7 +1,9 @@
 import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import { RelationshipService } from './relationship.service';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Relationship')
 @Controller('api/v1/relationships')
 export class RelationshipController {
   constructor(private relationshipService: RelationshipService) {}
@@ -15,7 +17,9 @@ export class RelationshipController {
   @UseGuards(AuthGuard)
   @Get('recommended')
   getRecommendedRelationships(@Req() req: any) {
-    return this.relationshipService.getRecommendedRelationships(req.user_data.id);
+    return this.relationshipService.getRecommendedRelationships(
+      req.user_data.id,
+    );
   }
 
   @UseGuards(AuthGuard)
@@ -46,6 +50,12 @@ export class RelationshipController {
   @Get('accept-friend/:id')
   acceptFriend(@Req() req: any, @Param('id') id: string) {
     return this.relationshipService.acceptFriend(req.user_data.id, id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('cancel-friend/:id')
+  cancelFriend(@Req() req: any, @Param('id') id: string) {
+    return this.relationshipService.cancelFriend(req.user_data.id, id);
   }
 
   @UseGuards(AuthGuard)

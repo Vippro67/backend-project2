@@ -8,9 +8,10 @@ import { User } from 'src/user/entities/user.entity';
 import { Media } from 'src/media/entities/media.entity';
 import { Tag } from 'src/tag/entities/tag.entity';
 import { Group } from 'src/group/entities/group.entity';
+import { Relationship } from 'src/relationship/entities/relationship.entity';
 @Module({
   imports:[
-    TypeOrmModule.forFeature([Post, User,Media, Tag, Group]),
+    TypeOrmModule.forFeature([Post, User,Media, Tag, Group,Relationship]),
     ConfigModule
   ],
   controllers: [PostController],
