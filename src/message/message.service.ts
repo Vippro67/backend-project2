@@ -1,11 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Message } from './entities/message.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { Media } from 'src/media/entities/media.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Group } from 'src/group/entities/group.entity';
-import { CreateCommnetDto } from 'src/comment/dto/create-comment.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 import * as AWS from 'aws-sdk';
 @Injectable()
@@ -58,8 +57,21 @@ export class MessageService {
       },
     });
   }
-  findOne(id: string) {
+  getClientName(id: string) {
     return this.messageRepository.findOne({
+      where: { id },
+      relations: ['sender'],
+      select: {
+        sender: {
+          id: true,
+          first_name: true,
+          last_name: true,
+        },
+      },
+    });
+  }
+  findOne(id: string) {
+    return this.messageRepository.find({
       where: { id },
       relations: ['sender', 'receiver', 'group'],
       select: {
@@ -180,13 +192,16 @@ export class MessageService {
       },
     });
   }
-  getUserConversation(id: any, user_id: string): Promise<Message[]> {
+  async getUserConversation(
+    current_id: string,
+    user_id: string,
+  ): Promise<Message[]> {
     return this.messageRepository.find({
-      order: { created_at: 'DESC' },
+      order: { created_at: 'ASC' },
       relations: ['sender', 'receiver'],
       where: [
-        { sender: { id: id }, receiver: { id: user_id } },
-        { sender: { id: user_id }, receiver: { id: id } },
+        { sender: { id: current_id }, receiver: { id: user_id } },
+        { sender: { id: user_id }, receiver: { id: current_id } },
       ],
       select: {
         sender: {
@@ -201,6 +216,30 @@ export class MessageService {
           last_name: true,
           avatar: true,
         },
+      },
+    });
+  }
+
+  async getAllUserConversation(id: any): Promise<Message[]> {
+    //get user group conversations
+    const userGroups = await this.groupRepository.find({
+      where: { users: { id: id } },
+      relations: ['users'],
+    });
+    const groupConversations = await this.messageRepository.find({
+      where: userGroups.map((group) => ({
+        group: { id: group.id },
+        sender: { id: Not(id) },
+      })),
+      order: { created_at: 'DESC' },
+      relations: ['sender', 'group', 'receiver'],
+      select: {
+        sender: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
         group: {
           id: true,
           name: true,
@@ -210,11 +249,73 @@ export class MessageService {
         created_at: true,
       },
     });
+    //get user direct conversations (not group)
+
+    const userConversations = await this.messageRepository.find({
+      where: [
+        { sender: { id: id }, group: IsNull() },
+        { receiver: { id: id }, group: IsNull() },
+      ],
+      order: { created_at: 'DESC' },
+      relations: ['sender', 'receiver', 'group'],
+      select: {
+        sender: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        receiver: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
+        content: true,
+        created_at: true,
+      },
+    });
+
+    //merge conversations
+
+    const filteredUserConversations = userConversations.filter((message) => {
+      //if have many messages between two users, get the last one
+      const index = userConversations.findIndex(
+        (item) =>
+          (item.sender.id == message.sender.id &&
+            item.receiver?.id == message.receiver?.id) ||
+          (item.sender.id == message.receiver?.id &&
+            item.receiver?.id == message.sender.id),
+      );
+      return userConversations.indexOf(message) == index;
+    });
+    const filteredGroupConversations = groupConversations.filter((message) => {
+      //if have many messages between two users, get the last one
+      const index = groupConversations.findIndex(
+        (item) => item.group.id == message.group.id,
+      );
+      return groupConversations.indexOf(message) == index;
+    });
+
+    const conversations = [
+      ...filteredUserConversations,
+      ...filteredGroupConversations,
+    ];
+
+    return conversations;
   }
 
   getGroupConversation(id: any, group_id: string): Promise<Message[]> {
+    //check if user is in the group
+    const isUserInGroup = this.groupRepository.findOne({
+      where: { id: group_id, users: { id: id } },
+    });
+    if (!isUserInGroup) {
+      throw new Error('User not in group');
+    }
+
     return this.messageRepository.find({
-      order: { created_at: 'DESC' },
+      order: { created_at: 'ASC' },
       relations: ['sender', 'group'],
       where: { group: { id: group_id } },
       select: {
@@ -300,6 +401,9 @@ export class MessageService {
       savedMessage.group = group;
       await this.messageRepository.save(savedMessage);
     }
+
+    // socket.io
+
     return this.messageRepository.findOne({
       where: { id: savedMessage.id },
       relations: ['sender', 'receiver', 'group', 'media'],

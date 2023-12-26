@@ -15,7 +15,7 @@ enum RelationshipStatus {
 
 @Entity()
 export class Relationship {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @ManyToOne(() => User, (user) => user.relationships)

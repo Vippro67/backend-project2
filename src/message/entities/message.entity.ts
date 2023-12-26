@@ -14,7 +14,7 @@ import { Group } from 'src/group/entities/group.entity';
 
 @Entity()
 export class Message {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
@@ -37,6 +37,7 @@ export class Message {
     onDelete: 'SET NULL',
     onUpdate: 'SET NULL',
   })
+  
   @JoinColumn({ name: 'media_id' })
   media: Media;
 

@@ -15,7 +15,7 @@ enum MediaType {
 }
 @Entity()
 export class Media {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @OneToOne(() => Post, (post) => post.media, { onDelete: 'CASCADE' })

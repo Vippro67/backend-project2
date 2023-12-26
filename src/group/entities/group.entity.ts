@@ -11,7 +11,7 @@ import { Post } from 'src/post/entities/post.entity';
 
 @Entity()
 export class Group {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()

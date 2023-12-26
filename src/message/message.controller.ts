@@ -1,37 +1,34 @@
-import {
-  Body,
-  Controller,
-  Param,
-  Post,
-  Put,
-  Delete,
-  Req,
-  UseGuards,
-  Get,
-  UseInterceptors,
-  UploadedFile,
-} from '@nestjs/common';
-import { MessageService } from './message.service';
-import { AuthGuard } from 'src/auth/auth.guard';
-import { Message } from './entities/message.entity';
-import { ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Param, Post, Delete, Req, UseGuards, Get, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { ApiTags } from '@nestjs/swagger';
+import { MessageService } from './message.service';
+import { Message } from './entities/message.entity';
 import { CreateMessageDto } from './dto/create-message.dto';
 
 @ApiTags('Message')
 @Controller('api/v1/messages')
 export class MessageController {
-  constructor(private messageService: MessageService) {}
+  constructor(private messageService: MessageService,) {}
 
+  // GET Endpoints
   @Get()
   findAll() {
     return this.messageService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Message> {
+  findOne(@Param('id') id: string): Promise<Message[]> {
     return this.messageService.findOne(id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('conversations/all')
+  getAllUserConversation(@Req() req: any): Promise<Message[]> {
+    return this.messageService.getAllUserConversation(
+      req.user_data.id,
+    );
   }
 
   @Get('sender/:sender_id')
@@ -40,9 +37,7 @@ export class MessageController {
   }
 
   @Get('receiver/:receiver_id')
-  findAllByReceiver(
-    @Param('receiver_id') receiver_id: string,
-  ): Promise<Message[]> {
+  findAllByReceiver(@Param('receiver_id') receiver_id: string): Promise<Message[]> {
     return this.messageService.findAllByReceiver(receiver_id);
   }
 
@@ -54,22 +49,17 @@ export class MessageController {
 
   @UseGuards(AuthGuard)
   @Get('conversation/user/:user_id')
-  getUserConversation(
-    @Req() req: any,
-    @Param('user_id') user_id: string,
-  ): Promise<Message[]> {
-    return this.messageService.getUserConversation(req.user_data, user_id);
+  getUserConversation(@Req() req: any, @Param('user_id') user_id: string): Promise<Message[]> {
+    return this.messageService.getUserConversation(req.user_data.id, user_id);
   }
 
   @UseGuards(AuthGuard)
   @Get('conversation/group/:group_id')
-  getGroupConversation(
-    @Req() req: any,
-    @Param('group_id') group_id: string,
-  ): Promise<Message[]> {
-    return this.messageService.getGroupConversation(req.user_data, group_id);
+  getGroupConversation(@Req() req: any, @Param('group_id') group_id: string): Promise<Message[]> {
+    return this.messageService.getGroupConversation(req.user_data.id, group_id);
   }
 
+  // POST Endpoint
   @UseGuards(AuthGuard)
   @Post()
   @UseInterceptors(
@@ -106,14 +96,11 @@ export class MessageController {
       },
     }),
   )
-  create(
-    @Req() req: any,
-    @Body() createMessageDto: CreateMessageDto,
-    @UploadedFile() file: Express.Multer.File,
-  ): Promise<Message> {
-    return this.messageService.create(req.user_data.id,createMessageDto, file);
+  create(@Req() req: any, @Body() createMessageDto: CreateMessageDto, @UploadedFile() file: Express.Multer.File): Promise<Message> {
+    return this.messageService.create(req.user_data.id, createMessageDto, file);
   }
-  
+
+  // DELETE Endpoint
   @UseGuards(AuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string): Promise<void> {

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
-import { Like, Repository } from 'typeorm';
+import { Like, Not, Repository } from 'typeorm';
 import { Pet } from './entities/pet.entity';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
@@ -82,10 +82,8 @@ export class PetService {
     return await this.petRepository.find({
       relations: ['owner'],
       where: {
-
         owner: {
           id: userId,
-
         },
       },
     });
@@ -222,9 +220,28 @@ export class PetService {
     }
     // find some pet have same information with this pet
     return await this.petRepository.find({
-      where: {
-        breed: pet.breed,
-        species: pet.species,
+      relations: ['owner'],
+      where: [
+        {
+          breed: pet.breed,
+          owner: {
+            id: Not(userId),
+          },
+        },
+        {
+          species: pet.species,
+          owner: {
+            id: Not(userId),
+          },
+        },
+      ],
+      select: {
+        owner: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          avatar: true,
+        },
       },
     });
   }

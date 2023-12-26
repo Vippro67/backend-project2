@@ -14,7 +14,7 @@ import { Group } from 'src/group/entities/group.entity';
 
 @Entity()
 export class Pet {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ nullable: true, default: null })
@@ -23,7 +23,7 @@ export class Pet {
   @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'owner_id' })
   owner: User;
-  
+
   @Column()
   name: string;
 
@@ -41,5 +41,4 @@ export class Pet {
 
   @Column()
   description: string;
-
 }

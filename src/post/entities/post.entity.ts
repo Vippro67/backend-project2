@@ -19,7 +19,7 @@ import { Group } from 'src/group/entities/group.entity';
 
 @Entity()
 export class Post {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @ManyToOne(() => User, (user) => user.posts, {
@@ -53,7 +53,6 @@ export class Post {
 
   @OneToMany(() => Comment, (comment) => comment.post)
   comments: Comment[];
-
 
   @ManyToMany(() => Tag)
   @JoinTable({

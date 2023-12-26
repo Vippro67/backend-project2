@@ -43,7 +43,7 @@ export class AuthService {
       },
     });
     if (!user) {
-      throw new HttpException('User not found', HttpStatus.UNAUTHORIZED);
+      throw new HttpException('User email not found', HttpStatus.UNAUTHORIZED);
     }
     const isPasswordMatching = await bcrypt.compareSync(
       loginUserDto.password,

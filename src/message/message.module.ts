@@ -7,9 +7,13 @@ import { ConfigModule } from '@nestjs/config';
 import { Message } from './entities/message.entity';
 import { Media } from 'src/media/entities/media.entity';
 import { Group } from 'src/group/entities/group.entity';
+import { AppGateway } from 'src/app.gateway';
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Message,Media, Group]),ConfigModule],
+  imports: [
+    TypeOrmModule.forFeature([User, Message, Media, Group]),
+    ConfigModule,
+  ],
   controllers: [MessageController],
-  providers: [MessageService]
+  providers: [MessageService,AppGateway],
 })
 export class MessageModule {}

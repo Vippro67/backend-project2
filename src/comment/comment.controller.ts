@@ -27,6 +27,7 @@ import { UpdateCommentDto } from './dto/update-comment.dto';
 export class CommentController {
   constructor(private commentService: CommentService) {}
 
+  // GET Endpoints
   @Get()
   findAll(@Query() query: FilterCommentDto) {
     return this.commentService.findAll(query);
@@ -88,7 +89,12 @@ export class CommentController {
     @Body() createCommentDto: CreateCommnetDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.commentService.create(req.body.post_id,req.user_data.id, createCommentDto, file);
+    return this.commentService.create(
+      req.body.post_id,
+      req.user_data.id,
+      createCommentDto,
+      file,
+    );
   }
 
   @UseGuards(AuthGuard)

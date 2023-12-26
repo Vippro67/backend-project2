@@ -14,15 +14,27 @@ import { TagModule } from './tag/tag.module';
 import { ConfigModule } from '@nestjs/config';
 import { RelationshipModule } from './relationship/relationship.module';
 import { PetModule } from './pet/pet.module';
-
+import { AppGateway } from './app.gateway';
 @Module({
-  imports: [ConfigModule.forRoot({
-    envFilePath: '.env',
-    isGlobal: true,
-  })
-  , TypeOrmModule.forRoot(dataSourceOptions),UserModule, AuthModule, PostModule, CommentModule, MessageModule, MediaModule, TagModule , GroupModule, RelationshipModule, PetModule],
+  imports: [
+    ConfigModule.forRoot({
+      envFilePath: '.env',
+      isGlobal: true,
+    }),
+    TypeOrmModule.forRoot(dataSourceOptions),
+    UserModule,
+    AuthModule,
+    PostModule,
+    CommentModule,
+    MessageModule,
+    MediaModule,
+    TagModule,
+    GroupModule,
+    RelationshipModule,
+    PetModule,
+  ],
 
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService,AppGateway],
 })
 export class AppModule {}
