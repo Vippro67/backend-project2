@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AppGateway } from './app.gateway';
 import { UserModule } from './user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from 'db/data-source';
@@ -14,7 +15,7 @@ import { TagModule } from './tag/tag.module';
 import { ConfigModule } from '@nestjs/config';
 import { RelationshipModule } from './relationship/relationship.module';
 import { PetModule } from './pet/pet.module';
-import { AppGateway } from './app.gateway';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -33,8 +34,7 @@ import { AppGateway } from './app.gateway';
     RelationshipModule,
     PetModule,
   ],
-
   controllers: [AppController],
-  providers: [AppService,AppGateway],
+  providers: [AppService, AppGateway],
 })
 export class AppModule {}

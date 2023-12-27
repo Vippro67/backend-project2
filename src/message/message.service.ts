@@ -35,7 +35,6 @@ export class MessageService {
       select: {
         id: true,
         content: true,
-
         sender: {
           id: true,
           first_name: true,
