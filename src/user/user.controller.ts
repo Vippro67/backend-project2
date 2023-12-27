@@ -41,6 +41,10 @@ export class UserController {
   getMyProfile(@Req() req: any) {
     return this.userService.getUserById(req.user_data.id);
   }
+  @Get(':id')
+  getUserById(@Param('id') id: string): Promise<User> {
+    return this.userService.getUserById(id);
+  }
 
   @Post('upload-avatar')
   @UseGuards(AuthGuard)
@@ -63,7 +67,8 @@ export class UserController {
           '.indd',
           '.jpeg 2000',
           '.pdf',
-        ];        if (!allowedExtArr.includes(ext)) {
+        ];
+        if (!allowedExtArr.includes(ext)) {
           req.fileValidationError = `Wrong extension type. Accepted file ext are: ${allowedExtArr.toString()}`;
           cb(null, false);
         } else {
@@ -87,11 +92,6 @@ export class UserController {
       throw new BadRequestException('File is required');
     }
     return this.userService.updateAvatar(req.user_data.id, file);
-  }
-
-  @Get(':id')
-  getUserById(@Param('id') id: string): Promise<User> {
-    return this.userService.getUserById(id);
   }
 
   @UseGuards(AuthGuard)

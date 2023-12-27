@@ -15,6 +15,10 @@ import { TagModule } from './tag/tag.module';
 import { ConfigModule } from '@nestjs/config';
 import { RelationshipModule } from './relationship/relationship.module';
 import { PetModule } from './pet/pet.module';
+import { Message } from './message/entities/message.entity';
+import { User } from './user/entities/user.entity';
+import { Group } from './group/entities/group.entity';
+import { Media } from './media/entities/media.entity';
 
 @Module({
   imports: [
@@ -23,6 +27,8 @@ import { PetModule } from './pet/pet.module';
       isGlobal: true,
     }),
     TypeOrmModule.forRoot(dataSourceOptions),
+    TypeOrmModule.forFeature([Message,User,Group,Media]),
+
     UserModule,
     AuthModule,
     PostModule,

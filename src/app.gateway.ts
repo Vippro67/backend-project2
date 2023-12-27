@@ -8,7 +8,8 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { AppService } from './app.service';
-import { MessageService } from './message/message.service';
+import { CreateMessageDto } from './message/dto/create-message.dto';
+import { UseGuards } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
@@ -30,6 +31,12 @@ export class AppGateway
 
   @SubscribeMessage('sendMessage')
   async handleSendMessage(client: Socket, payload: any): Promise<void> {
-    console.log('payload', payload);
+    const message = await this.appService.saveMessage(
+      payload.sender_id,
+      payload.receiver_id,
+      payload.group_id,
+      payload.content,
+    );
+    this.server.emit('newMessage', message);
   }
 }
