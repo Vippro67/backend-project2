@@ -119,6 +119,9 @@ export class UserService {
     id: string,
     updateUserDto: UpdateUserDto,
   ): Promise<UpdateResult> {
+    if (updateUserDto.password) {
+      updateUserDto.password = await this.hashPassword(updateUserDto.password);
+    }
     return await this.userRepository.update(id, updateUserDto);
   }
   deleteHistoryTags(userId: string) {

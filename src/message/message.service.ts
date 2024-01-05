@@ -228,7 +228,6 @@ export class MessageService {
     const groupConversations = await this.messageRepository.find({
       where: userGroups.map((group) => ({
         group: { id: group.id },
-        sender: { id: Not(id) },
       })),
       order: { created_at: 'DESC' },
       relations: ['sender', 'group', 'receiver'],

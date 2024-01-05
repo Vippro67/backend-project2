@@ -111,23 +111,25 @@ export class GroupService {
       name: createGroupDto.name,
       users: [user],
     });
-    const params = {
-      Bucket: this.bucketName,
-      Key: `group-avatar/${Date.now()}_${file.originalname}`,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-      ACL: 'public-read',
-    };
+    if (file) {
+      const params = {
+        Bucket: this.bucketName,
+        Key: `group-avatar/${Date.now()}_${file.originalname}`,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        ACL: 'public-read',
+      };
+      try {
+        const result = await this.s3.upload(params).promise();
+        group.avatar = result.Location;
+        await this.userRepository.save(group.users);
 
-    try {
-      const result = await this.s3.upload(params).promise();
-      group.avatar = result.Location;
-      await this.userRepository.save(group.users);
-
-      await this.groupRepository.save(group);
-    } catch (error) {
-      throw new BadRequestException('Failed to upload avatar' + error);
+        await this.groupRepository.save(group);
+      } catch (error) {
+        throw new BadRequestException('Failed to upload avatar' + error);
+      }
     }
+
     return this.groupRepository.find({
       where: { id: group.id },
       relations: ['users'],
